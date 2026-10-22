@@ -59,10 +59,22 @@ Comprueba, partido a partido, si el jugada a jugada cuadra con el box score: mar
 uv run python -m leioa_stats.validate
 ```
 
+## Métricas básicas y de tiro
+
+Muestra las métricas de la temporada del equipo (frente a sus rivales), de cada jugador y por zonas de tiro, y guarda las tablas en `data/processed/` (CSV):
+
+```bash
+uv run python -m leioa_stats.metrics
+```
+
+- **Tiro:** TC%, T2%, T3%, T1%, eFG% = (TCM + 0,5 × T3M) / TCA y TS% = PTS / (2 × (TCA + 0,44 × T1A)).
+- **Producción:** medias por partido y por 40 minutos.
+- **Zonas:** cerca del aro (< 3 m), media distancia, triple de esquina y triple frontal, calculadas a partir de las coordenadas del mapa de tiros.
+
 ## Resultado
 
 El proyecto genera una web estática (carpeta `site/`) con un informe por partido, uno de temporada y uno por jugador, pensada para verse en el móvil y en el ordenador.
 
 ## Estado
 
-Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). El siguiente paso es calcular las primeras métricas.
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas y de tiro. El siguiente paso son las métricas avanzadas (posesiones, ritmo, eficiencia y Four Factors).
