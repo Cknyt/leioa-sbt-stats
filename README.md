@@ -70,6 +70,12 @@ uv run python -m leioa_stats.metrics
 - **Tiro:** TC%, T2%, T3%, T1%, eFG% = (TCM + 0,5 × T3M) / TCA y TS% = PTS / (2 × (TCA + 0,44 × T1A)).
 - **Producción:** medias por partido y por 40 minutos.
 - **Zonas:** cerca del aro (< 3 m), media distancia, triple de esquina y triple frontal, calculadas a partir de las coordenadas del mapa de tiros.
+- **Avanzadas** (estimaciones; fórmulas en `metrics/advanced.py`):
+  - Posesiones = TCA + 0,44 × T1A - RO + PER, con la media de los dos equipos.
+  - Ritmo = posesiones por 40 minutos.
+  - Eficiencia ofensiva y defensiva = puntos anotados y recibidos por 100 posesiones.
+  - Four Factors = eFG%, PER%, RO% y TL/TC, del equipo y de sus rivales.
+  - % de uso de cada jugador.
 
 ## Resultado
 
@@ -77,4 +83,4 @@ El proyecto genera una web estática (carpeta `site/`) con un informe por partid
 
 ## Estado
 
-Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas y de tiro. El siguiente paso son las métricas avanzadas (posesiones, ritmo, eficiencia y Four Factors).
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro y avanzadas. El siguiente paso son los quintetos y el +/- a partir del jugada a jugada.

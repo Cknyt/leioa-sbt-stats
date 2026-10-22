@@ -5,16 +5,18 @@ Instrucciones para Claude Code en este repositorio. El contexto del proyecto est
 ## Comunicación
 
 - Habla siempre en español.
-- Explica paso a paso y con el porqué todo lo que tenga que hacer el usuario (Git, GitHub, terminal). Está aprendiendo, así que conviene explicar los conceptos nuevos la primera vez que aparezcan.
-- Espera a que el usuario confirme cada paso antes de pasar al siguiente.
-- Los comandos que tenga que ejecutar el usuario van en bloques de código separados, uno por bloque.
+- El usuario está aprendiendo: explica con el porqué los conceptos nuevos la primera vez que aparezcan.
+- Detente solo para las decisiones del usuario: aprobar un diseño o una fórmula y fusionar un PR. Los pasos rutinarios (tests, ruff, actualizar `main`, borrar ramas) hazlos sin preguntar y resúmelos.
+- Propuesta y código van juntos: implementa directamente y explica las decisiones (fórmulas incluidas) en la descripción del PR, para que el usuario las revise allí.
+- Si el usuario tiene que ejecutar algún comando, va en un bloque de código propio, uno por bloque.
 
 ## Flujo de trabajo con Git
 
 - `main` solo recibe cambios a través de Pull Requests. No hagas commits ni push directamente a `main`.
 - Cada cambio va en su propia rama, con un nombre descriptivo y un prefijo: `feat/`, `fix/`, `docs/`, `chore/` o `data/`.
 - Los mensajes de commit se escriben en español, en imperativo y de forma breve (por ejemplo, "Añade descarga del jugada a jugada").
-- Las operaciones de Git y GitHub (crear ramas, commits, push, Pull Requests, merge) las hace el usuario. Claude le explica los comandos salvo que el usuario le pida expresamente que los ejecute.
+- Claude hace las operaciones de Git y GitHub: crear la rama, commit, push y abrir el PR. Después comprueba que el CI está en verde.
+- Fusionar es decisión del usuario: lo hace él en GitHub o dice "fusiona" y lo hace Claude (`gh pr merge <n> --merge --delete-branch`, y luego actualizar `main` y borrar la rama local). Nunca se fusiona con el CI en rojo.
 
 ## Tecnología
 
@@ -43,8 +45,9 @@ Crea cada archivo o carpeta cuando haga falta, no antes.
 
 ## Antes de escribir código
 
-- Propón la tecnología, las librerías y la estructura de carpetas, y espera la aprobación del usuario antes de implementar.
+- Los cambios de tecnología, de librerías o de estructura de carpetas se proponen y se esperan a que el usuario los apruebe.
 - Los cambios deben ser pequeños y fáciles de revisar en un Pull Request.
+- Con esfuerzo medio basta para casi todo. Pide subirlo a alto para los quintetos y el +/-.
 
 ## Datos
 
