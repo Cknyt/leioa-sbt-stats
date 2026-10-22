@@ -10,6 +10,10 @@
   <p><a href="equipos/{{ own_slug }}.html">Jugadores en detalle: mapa de tiros de cada uno →</a></p>
 </section>
 
+{% with ideas_title = "Lo que pueden plantearnos los rivales" %}
+{% include "insights.html.j2" %}
+{% endwith %}
+
 {% if next_match %}
 <section class="next">
   <h2>Próximo partido</h2>

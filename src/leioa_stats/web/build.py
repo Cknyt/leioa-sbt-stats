@@ -15,6 +15,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from plotly.offline import get_plotlyjs_version
 
 from leioa_stats.download import TEAM_NAME, involves
+from leioa_stats.format import display_name, number
 from leioa_stats.metrics.advanced import (
     four_factors,
     games_summary,
@@ -24,12 +25,14 @@ from leioa_stats.metrics.advanced import (
     team_games,
 )
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
+from leioa_stats.metrics.insights import match_insights, team_insights
 from leioa_stats.metrics.league import league_average, league_table, player_profiles, ranks
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
-from leioa_stats.validate import validate_match
+from leioa_stats.validate import POINTS, validate_match
 from leioa_stats.web import charts
+from leioa_stats.web.glossary import ENTRIES, TERMS
 
 SITE_DIR = Path("site")
 HERE = Path(__file__).parent
@@ -50,28 +53,10 @@ FACTOR_ROWS = ["Ritmo", "Eficiencia (pts/100 pos.)", "eFG%", "PER%", "RO%", "TL/
 TOP_SHOOTERS = 6
 
 
-def display_name(name: str) -> str:
-    """'IÑIGO CARNEROS VILLAR' -> 'Iñigo Carneros Villar', 'LEIOA SBT' -> 'Leioa SBT'.
-
-    Las siglas (palabras sin vocales o con números, como SBT, CB o 1DM) se dejan en mayúsculas.
-    """
-
-    def word(w: str) -> str:
-        is_acronym = not any(c in "AEIOUÁÉÍÓÚÜ" for c in w) or any(c.isdigit() for c in w)
-        return w if is_acronym else w.capitalize()
-
-    return " ".join(word(w) for w in name.split())
-
-
 def slug(name: str) -> str:
     """'ELABORADOS NATURALES VALLE DE EGÜÉS' -> 'elaborados-naturales-valle-de-egues'."""
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     return "-".join("".join(c if c.isalnum() else " " for c in ascii_name.lower()).split())
-
-
-def number(value: float) -> str:
-    """Número con coma decimal y sin ceros sobrantes: 88.8 -> '88,8', 85.0 -> '85'."""
-    return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
 def table(df: pd.DataFrame, index_name: str = "") -> str:
@@ -171,7 +156,14 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
     ).T
     numbers = players[players["team"] == team_name].set_index("player")["number"].to_dict()
     issues = validate_match(stats, moves)
+    home = next(t["name"] for t in stats["teams"] if t["teamIdIntern"] == stats["localId"])
+    sign = 1 if home == team_name else -1
+    score_diffs = [
+        sign * (int(local) - int(visitor))
+        for local, visitor in (m["score"].split("-") for m in moves if m["idMove"] in POINTS)
+    ]
     return {
+        "keys": match_insights(own_game, score_diffs, team_name, rival),
         "match": match,
         "title": match_title(match),
         "date": match_date(match),
@@ -218,9 +210,20 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
 
     team = team_season(tables["teams"], team_name)
     team.index = [display_name(i) for i in team.index]
-    season_players = player_season(players, team_name).join(
-        player_usage(players, tables["teams"], team_name)
-    )[PLAYER_COLUMNS]
+    full_season = (
+        player_season(players, team_name)
+        .join(player_usage(players, tables["teams"], team_name))
+        .join(player_profiles(players, shots, team_name).drop(columns="TCA"))
+    )
+    insights = team_insights(
+        team_name,
+        league,
+        league_average(tables["teams"]),
+        full_season,
+        shots[shots["team"] == team_name],
+        shots,
+    )
+    season_players = full_season[PLAYER_COLUMNS]
     season_players.index = [display_name(p) for p in season_players.index]
     on_off = player_on_off(stints)
     on_off.index = [display_name(p) for p in on_off.index]
@@ -252,6 +255,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
     own_ids = {match["id"] for match, _, _ in matches}
     rival_shots = shots[shots["match_id"].isin(own_ids) & (shots["team"] != team_name)]
     return {
+        "insights": insights,
         "games": games,
         "wins": sum(g["won"] for g in games),
         "losses": sum(not g["won"] for g in games),
@@ -302,6 +306,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
         .join(player_usage(players, tables["teams"], team_name))
         .join(player_profiles(players, shots, team_name).drop(columns="TCA"))
     )
+    insights = team_insights(team_name, league, average, season, team_shots, shots)
     numbers = players[players["team"] == team_name].groupby("player")["number"].last().to_dict()
     player_charts = []
     for player, info in season.sort_values("TCA", ascending=False).head(TOP_SHOOTERS).iterrows():
@@ -339,6 +344,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
             }
         )
     return {
+        "insights": insights,
         "name": display_name(team_name),
         "is_own": team_name == own_team,
         "record": f"{int(row['V'])}-{int(row['D'])}",
@@ -384,12 +390,16 @@ def build_site(
         "generated": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "n_games": len(own_matches),
         "n_league_games": len(all_matches),
+        "glossary": ENTRIES,
+        # Dentro de un <script>, "</" cerraría la etiqueta antes de tiempo.
+        "glossary_json": json.dumps(TERMS, ensure_ascii=False).replace("</", "<\\/"),
     }
     if out_dir.exists():
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
-    shutil.copy(HERE / "static" / "style.css", out_dir / "style.css")
+    for static_file in ("style.css", "glossary.js"):
+        shutil.copy(HERE / "static" / static_file, out_dir / static_file)
 
     pages: list[Path] = []
 

@@ -144,6 +144,52 @@ table.data tr.next th, table.data tr.next td { background: #f9eeda; }
 .glossary dd { margin: 0; color: var(--muted); }
 .glossary summary { cursor: pointer; font-weight: 600; color: var(--accent); }
 
+/* Conclusiones automáticas. */
+.insights { border-left: 4px solid #6c4ab6; }
+.insights h2 { color: #4b2f8f; }
+.insight-title { margin: 14px 0 4px; font-size: 0.95rem; }
+.insight-title.good { color: var(--win); }
+.insight-title.bad { color: var(--loss); }
+.insight-title.ideas { color: var(--warn); }
+.insight-list { margin: 0; padding-left: 20px; }
+.insight-list li { margin: 3px 0; }
+
+/* Botón "?" junto a cada término técnico y su ventanita de ayuda (glossary.js). */
+button.info, .info-sample {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #c9d3e3;
+  color: var(--accent);
+  font: 700 11px/1 system-ui, sans-serif;
+  vertical-align: 1px;
+  cursor: pointer;
+}
+button.info:hover, button.info:focus-visible { background: var(--accent); color: #fff; outline: none; }
+/* Área táctil mayor que el botón dibujado, para el dedo. */
+button.info { position: relative; }
+button.info::after { content: ""; position: absolute; inset: -8px; }
+.tip {
+  position: fixed;
+  z-index: 10;
+  max-width: min(320px, calc(100vw - 16px));
+  background: #1d2330;
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
 footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 16px 24px; }
 
 @media (min-width: 700px) {

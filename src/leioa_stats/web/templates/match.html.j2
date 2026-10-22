@@ -9,6 +9,16 @@
   <p class="meta">{{ possessions }} posesiones · ritmo {{ pace }} por 40 minutos</p>
 </section>
 
+{% if keys %}
+<section class="insights">
+  <h2>Claves del partido</h2>
+  <p class="hint">Generadas automáticamente: diferencias claras en los Four Factors y evolución del marcador.</p>
+  <ul class="insight-list">
+    {% for item in keys %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 {% if issues %}
 <section class="issues">
   <h2>Fiabilidad de los datos</h2>
