@@ -101,7 +101,7 @@ Después abre <http://localhost:8000>.
 
 ## Publicación
 
-GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube al hosting por FTPS. Se ejecuta:
+GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon** (la carpeta `web` es la raíz pública del dominio, así que queda en `tudominio.com/leioa/`). Se ejecuta:
 
 - **cada lunes a las 06:00 UTC**, después de la jornada del fin de semana;
 - cada vez que llega a `main` un cambio de código;
@@ -111,13 +111,19 @@ La web no se indexa en buscadores (`noindex`): se ve con el enlace, pero no apar
 
 Configuración en GitHub (*Settings* > *Secrets and variables* > *Actions*):
 
-| Tipo | Nombre | Valor |
+| Tipo | Nombre | Valor actual |
 |---|---|---|
-| Secreto | `FTP_SERVER` | Servidor FTP del hosting (por ejemplo, `ftp.tudominio.com`) |
-| Secreto | `FTP_USERNAME` | Usuario FTP |
-| Secreto | `FTP_PASSWORD` | Contraseña FTP |
-| Variable | `FTP_SERVER_DIR` | Carpeta de la web en el hosting, terminada en `/` (por ejemplo, `/public_html/leioa/`) |
-| Variable (opcional) | `FTP_PROTOCOL` | `ftps` por defecto; `ftp` si el hosting no admite FTP cifrado |
+| Secreto | `FTP_SERVER` | Servidor FTP que muestra el panel de cdmon, solo el nombre: sin `ftp://`, puerto ni carpeta |
+| Secreto | `FTP_USERNAME` | Usuario FTP **secundario** de cdmon, limitado a la carpeta `web/leioa` |
+| Secreto | `FTP_PASSWORD` | Contraseña de ese usuario |
+| Variable | `FTP_SERVER_DIR` | `./`: el usuario secundario ya entra dentro de `web/leioa` (con el usuario principal sería `web/leioa/`) |
+| Variable | `FTP_PROTOCOL` | `ftp`: el servidor de cdmon no admite FTP cifrado (responde `500 AUTH not understood` a FTPS) |
+
+Notas:
+
+- **FTP sin cifrar:** el usuario y la contraseña viajan sin cifrar. El riesgo está acotado porque el usuario solo puede tocar `web/leioa`; el resto del hosting no le es accesible. Si el plan de cdmon ofrece SFTP, conviene cambiar a SFTP (requiere otra acción de subida en el workflow).
+- **La subida solo toca lo suyo:** la acción guarda en el servidor `.ftp-deploy-sync-state.json` con lo que ha subido, sube solo las diferencias y solo borra archivos que subió ella.
+- **Errores ya vistos:** `ENOTFOUND` = `FTP_SERVER` mal escrito; `500 AUTH not understood` = el servidor no admite FTPS (usar `FTP_PROTOCOL=ftp`).
 
 Sin esta configuración, el workflow genera la web igualmente (se puede descargar desde la ejecución, en *Artifacts*), pero no la sube. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
 
