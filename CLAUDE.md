@@ -24,8 +24,8 @@ Instrucciones para Claude Code en este repositorio. El contexto del proyecto est
 - Librerías: httpx (descarga), pandas (tablas y cálculos), plotly (gráficos interactivos), Jinja2 (plantillas HTML).
 - Calidad: pytest para los tests y ruff para el formato y el lint.
 - Los nombres de archivos, funciones y variables van en inglés. Los comentarios, la documentación y los commits van en español.
-- El resultado final es una web estática en `site/`, adaptada a móvil y ordenador. Se publica en `web/leioa` del hosting del usuario en cdmon (`tudominio.com/leioa/`) por FTP sin cifrar, porque cdmon no admite FTPS, con un usuario FTP secundario limitado a esa carpeta. Lo hace `.github/workflows/publish.yml` (cada lunes, al llegar código a `main` y a mano). No se indexa en buscadores. La configuración y los errores ya vistos están en el README, en "Publicación".
-- La otra web del usuario está en el mismo hosting: nunca cambies `FTP_SERVER_DIR` ni el usuario FTP sin que el usuario lo pida.
+- El resultado final es una web estática en `site/`, adaptada a móvil y ordenador. Se publica en `web/leioa` del hosting del usuario en cdmon (<https://ownbasketball.com/leioa/>) por FTP sin cifrar, porque cdmon no admite FTPS, con el usuario FTP principal (`FTP_SERVER_DIR=web/leioa/`). Lo hace `.github/workflows/publish.yml` (cada lunes, al llegar código a `main` y a mano). No se indexa en buscadores. La configuración y los errores ya vistos están en el README, en "Publicación".
+- La web corporativa del usuario está en el mismo hosting, en `web/`, y se publica con la misma herramienta (su registro es `web/.ftp-deploy-sync-state.json`). Nunca apuntes `FTP_SERVER_DIR` a `web/`: borraría sus archivos. No cambies `FTP_SERVER_DIR` ni el usuario FTP sin que el usuario lo pida.
 - Las credenciales FTP son secretos de GitHub que crea el usuario. Claude nunca las pide, las escribe ni las guarda.
 
 Comandos habituales:
