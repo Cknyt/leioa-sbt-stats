@@ -101,7 +101,7 @@ Después abre <http://localhost:8000>.
 
 ## Publicación
 
-GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube al hosting por FTPS. Se ejecuta:
+GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon**. La carpeta `web` es la raíz pública del dominio, así que la web queda en <https://ownbasketball.com/leioa/>. Se ejecuta:
 
 - **cada lunes a las 06:00 UTC**, después de la jornada del fin de semana;
 - cada vez que llega a `main` un cambio de código;
@@ -111,13 +111,24 @@ La web no se indexa en buscadores (`noindex`): se ve con el enlace, pero no apar
 
 Configuración en GitHub (*Settings* > *Secrets and variables* > *Actions*):
 
-| Tipo | Nombre | Valor |
+| Tipo | Nombre | Valor actual |
 |---|---|---|
-| Secreto | `FTP_SERVER` | Servidor FTP del hosting (por ejemplo, `ftp.tudominio.com`) |
-| Secreto | `FTP_USERNAME` | Usuario FTP |
-| Secreto | `FTP_PASSWORD` | Contraseña FTP |
-| Variable | `FTP_SERVER_DIR` | Carpeta de la web en el hosting, terminada en `/` (por ejemplo, `/public_html/leioa/`) |
-| Variable (opcional) | `FTP_PROTOCOL` | `ftps` por defecto; `ftp` si el hosting no admite FTP cifrado |
+| Secreto | `FTP_SERVER` | Servidor FTP que muestra el panel de cdmon, solo el nombre: sin `ftp://`, puerto ni carpeta |
+| Secreto | `FTP_USERNAME` | Usuario FTP **principal** de cdmon (entra en la raíz de la cuenta, donde están `logs`, `tmp` y `web`) |
+| Secreto | `FTP_PASSWORD` | Contraseña de ese usuario |
+| Variable | `FTP_SERVER_DIR` | `web/leioa/`: la ruta se cuenta desde donde entra el usuario FTP. Con un usuario secundario limitado a `web/leioa` sería `./` |
+| Variable | `FTP_PROTOCOL` | `ftp`: el servidor de cdmon no admite FTP cifrado (responde `500 AUTH not understood` a FTPS) |
+
+Notas:
+
+- **Nunca apuntes `FTP_SERVER_DIR` a `web/`.** La web corporativa del mismo hosting se publica con la misma herramienta y tiene su registro `web/.ftp-deploy-sync-state.json`: la subida lo tomaría como propio y borraría sus archivos.
+- **La subida solo toca lo suyo:** guarda su registro en `web/leioa/.ftp-deploy-sync-state.json`, sube solo las diferencias y solo borra archivos que subió ella.
+- **Pendiente (seguridad):** el FTP va sin cifrar y con el usuario principal, que da acceso a todo el hosting. Es más seguro crear en cdmon un usuario FTP secundario limitado a `web/leioa`, poner sus datos en los secretos y cambiar `FTP_SERVER_DIR` a `./`. Si el plan de cdmon ofrece SFTP, mejor aún (requiere otra acción de subida en el workflow).
+- **Errores ya vistos:**
+  - `ENOTFOUND`: `FTP_SERVER` mal escrito.
+  - `500 AUTH not understood`: el servidor no admite FTPS (usar `FTP_PROTOCOL=ftp`).
+  - La web responde 403 y la carpeta está vacía: `FTP_SERVER_DIR` no se cuenta desde donde entra el usuario FTP; los archivos acaban en otra carpeta.
+  - `ECONNRESET`: corte puntual del servidor; volver a lanzar la publicación.
 
 Sin esta configuración, el workflow genera la web igualmente (se puede descargar desde la ejecución, en *Artifacts*), pero no la sube. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
 
