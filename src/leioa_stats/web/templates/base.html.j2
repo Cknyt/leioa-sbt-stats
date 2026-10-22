@@ -19,11 +19,11 @@
         <a class="brand" href="{{ root }}index.html">{{ team_name }}</a>
         <span class="subtitle">1ª División Masculina · Temporada 2026-27</span>
       </div>
-      {# Secciones de la portada. #}
+      {# Secciones de la portada y página de jugadores. #}
       <nav class="tabs" aria-label="Secciones">
         <a href="{{ root }}index.html"{% if active == "season" %} aria-current="page"{% endif %}>Resumen</a>
         <a href="{{ root }}index.html#partidos">Partidos</a>
-        <a href="{{ root }}index.html#jugadores">Jugadores</a>
+        <a href="{{ root }}jugadores.html"{% if active == "players" %} aria-current="page"{% endif %}>Jugadores</a>
         <a href="{{ root }}index.html#tiro">Tiro</a>
         <a href="{{ root }}index.html#quintetos">Quintetos</a>
         <a href="{{ root }}index.html#liga">Liga</a>

@@ -1,7 +1,7 @@
 """Genera la web estática en site/.
 
-Páginas: la temporada del equipo, una por cada partido suyo y una por cada equipo de la liga
-(scouting de rivales).
+Páginas: la temporada del equipo, sus jugadores, una por cada partido suyo y una por cada
+equipo de la liga (scouting de rivales).
 """
 
 import json
@@ -58,6 +58,11 @@ KPIS = [
 ]
 # Jugadores con mapa de tiros propio en la página de cada equipo (los que más tiran).
 TOP_SHOOTERS = 6
+# Página de jugadores: tarjeta propia solo con minutos suficientes para que las cifras digan algo.
+MIN_MINUTES_FOR_CARD = 10
+# Escala de las barras de las tarjetas (el valor que llena la barra entera).
+TS_SCALE, USAGE_SCALE = 80, 40
+AVERAGE_USAGE = 20  # por definición: 5 jugadores se reparten el 100 % de las jugadas
 
 
 def slug(name: str) -> str:
@@ -230,8 +235,6 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         shots[shots["team"] == team_name],
         shots,
     )
-    season_players = full_season[PLAYER_COLUMNS]
-    season_players.index = [display_name(p) for p in season_players.index]
     on_off = player_on_off(stints)
     on_off.index = [display_name(p) for p in on_off.index]
     advanced = team_advanced(tables["teams"], team_name)
@@ -296,7 +299,6 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         "losses": sum(not g["won"] for g in games),
         "team": table(team[TEAM_COLUMNS]),
         "advanced": table(advanced),
-        "players": table(season_players, "Jugador"),
         "on_off": table(on_off, "Jugador"),
         "lineups": lineup_table(lineup_summary(stints), numbers),
         "lineups_incomplete": number(round(incomplete, 1)) if incomplete else None,
@@ -312,6 +314,66 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         "next_rival_slug": slug(next_rival) if next_rival else None,
         "league_columns": LEAGUE_COLUMNS,
         "league_rows": league_rows,
+    }
+
+
+def _bar(value: float, scale: float) -> str:
+    """Ancho de una barra en % (con punto decimal, para CSS)."""
+    return f"{min(100, 100 * value / scale):.1f}" if pd.notna(value) else "0"
+
+
+def _signed(value: float) -> str:
+    return ("+" if value > 0 else "") + number(value)
+
+
+def players_page(tables, stints, team_name) -> dict:
+    """Datos de la página de jugadores del equipo: una tarjeta por jugador y la tabla completa."""
+    players = tables["players"]
+    season = player_season(players, team_name).join(
+        player_usage(players, tables["teams"], team_name)
+    )
+    on_off = player_on_off(stints)
+    team_ts = team_season(tables["teams"], team_name).loc[team_name, "TS%"]
+    cards, few_minutes = [], []
+    for player, row in season.sort_values("MIN/PJ", ascending=False).iterrows():
+        if row["MIN/PJ"] < MIN_MINUTES_FOR_CARD:
+            few_minutes.append(f"{display_name(player)} ({number(row['MIN/PJ'])} min/PJ)")
+            continue
+        diff = on_off["DIFERENCIA"].get(player)
+        cards.append(
+            {
+                "name": display_name(player),
+                "games": int(row["PJ"]),
+                "sort": {
+                    "min": row["MIN/PJ"],
+                    "pts": row["PTS/PJ"],
+                    "ts": row["TS%"] if pd.notna(row["TS%"]) else 0,
+                    "uso": row["USO%"],
+                },
+                "min": number(row["MIN/PJ"]),
+                "pts": number(row["PTS/PJ"]),
+                "reb": number(row["RT/PJ"]),
+                "ast": number(row["AS/PJ"]),
+                "threes": f"{int(row['T3M'])}/{int(row['T3A'])}",
+                "ts": number(row["TS%"]) if pd.notna(row["TS%"]) else "–",
+                "ts_width": _bar(row["TS%"], TS_SCALE),
+                "ts_good": pd.notna(row["TS%"]) and row["TS%"] >= team_ts,
+                "uso": number(row["USO%"]),
+                "uso_width": _bar(row["USO%"], USAGE_SCALE),
+                "diff": _signed(diff) if diff is not None and pd.notna(diff) else None,
+            }
+        )
+    full = season[PLAYER_COLUMNS]
+    full.index = [display_name(p) for p in full.index]
+    return {
+        "cards": cards,
+        "few_minutes": few_minutes,
+        "min_minutes": MIN_MINUTES_FOR_CARD,
+        "team_ts": number(team_ts),
+        "ts_mark": _bar(team_ts, TS_SCALE),
+        "average_usage": AVERAGE_USAGE,
+        "uso_mark": _bar(AVERAGE_USAGE, USAGE_SCALE),
+        "players": table(full, "Jugador"),
     }
 
 
@@ -433,7 +495,7 @@ def build_site(
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
-    for static_file in ("style.css", "glossary.js"):
+    for static_file in ("style.css", "glossary.js", "players.js"):
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
 
     pages: list[Path] = []
@@ -449,6 +511,13 @@ def build_site(
         "",
         active="season",
         **season_page(own_matches, tables, stints[team_name], team_name, upcoming),
+    )
+    render(
+        out_dir / "jugadores.html",
+        "players.html.j2",
+        "",
+        active="players",
+        **players_page(tables, stints[team_name], team_name),
     )
     for match, stats, moves in own_matches:
         render(

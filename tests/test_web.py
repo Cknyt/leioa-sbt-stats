@@ -48,11 +48,13 @@ def test_build_site_creates_pages(site):
     out, pages = site
     assert pages == [
         out / "index.html",
+        out / "jugadores.html",
         out / "partidos" / "99138.html",
         out / "equipos" / "leioa-sbt.html",
         out / "equipos" / "easo-basket.html",
     ]
     assert (out / "style.css").exists()
+    assert (out / "players.js").exists()
 
 
 def test_next_match_links_to_rival_report(site):
@@ -95,6 +97,21 @@ def test_season_page(site):
     assert "Leioa SBT 76-70 Easo Basket" in html
     assert "Iñigo Carneros Villar" in html
     assert html.count('class="plotly-graph-div"') == 1
+
+
+def test_players_page(site):
+    out, _ = site
+    html = (out / "jugadores.html").read_text(encoding="utf-8")
+    assert 'aria-current="page">Jugadores' in html
+    # Tarjeta propia solo con minutos suficientes; los demás, en una línea aparte.
+    cards = html.count('<article class="player"')
+    assert 0 < cards < 13
+    assert f"Con menos de {build.MIN_MINUTES_FOR_CARD} minutos por partido" in html
+    assert "Iñigo Carneros Villar" in html
+    # Cada tarjeta lleva los valores con los que players.js la ordena.
+    assert 'data-ts=""' not in html
+    # La tabla completa sigue disponible.
+    assert "Tabla completa de jugadores" in html
 
 
 def test_match_page(site):

@@ -1,0 +1,68 @@
+{% extends "base.html.j2" %}
+{% block title %}Jugadores{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Jugadores</h1>
+    <p class="hint">Los que juegan {{ min_minutes }} minutos o más por partido. La raya negra de cada barra marca la media del equipo.</p>
+  </div>
+  <div class="sorter" role="group" aria-label="Ordenar por" hidden>
+    <span>Ordenar por</span>
+    <button type="button" data-sort="min" aria-pressed="true">Minutos</button>
+    <button type="button" data-sort="pts" aria-pressed="false">Puntos</button>
+    <button type="button" data-sort="ts" aria-pressed="false">Acierto</button>
+    <button type="button" data-sort="uso" aria-pressed="false">Uso</button>
+  </div>
+</div>
+{% if n_games < 8 %}
+<p class="note">Solo hay {{ n_games }} partidos: con tan pocos, un buen o mal día de tiro cambia mucho las cifras de cada jugador.</p>
+{% endif %}
+
+<div class="player-cards">
+{% for c in cards %}
+  <article class="player" data-min="{{ c.sort.min }}" data-pts="{{ c.sort.pts }}" data-ts="{{ c.sort.ts }}" data-uso="{{ c.sort.uso }}">
+    <header>
+      <h2>{{ c.name }}</h2>
+      <span>{{ c.games }} PJ · {{ c.min }} min</span>
+    </header>
+    <div class="player-stats">
+      <div><strong>{{ c.pts }}</strong><span>puntos</span></div>
+      <div><strong>{{ c.reb }}</strong><span>rebotes</span></div>
+      <div><strong>{{ c.ast }}</strong><span>asistencias</span></div>
+      <div><strong>{{ c.threes }}</strong><span>triples</span></div>
+    </div>
+    <div class="player-bars">
+      <span class="bar-label" data-term="TS%">TS%</span>
+      <span class="bar marked" role="img" aria-label="TS% {{ c.ts }}; media del equipo {{ team_ts }}">
+        <span class="{{ 'good' if c.ts_good else 'low' }}" style="width: {{ c.ts_width }}%"></span>
+        <i style="left: {{ ts_mark }}%"></i>
+      </span>
+      <b>{{ c.ts }}</b>
+      <span class="bar-label" data-term="USO%">USO%</span>
+      <span class="bar marked" role="img" aria-label="USO% {{ c.uso }}; media {{ average_usage }}">
+        <span style="width: {{ c.uso_width }}%"></span>
+        <i style="left: {{ uso_mark }}%"></i>
+      </span>
+      <b>{{ c.uso }}</b>
+    </div>
+    <footer>
+      {% if c.diff %}<span><span data-term="DIFERENCIA">En pista vs. banquillo</span>: <b>{{ c.diff }}</b> por 100 pos.</span>{% else %}<span></span>{% endif %}
+      <a href="equipos/{{ own_slug }}.html">Mapa de tiros →</a>
+    </footer>
+  </article>
+{% endfor %}
+</div>
+{% if few_minutes %}
+<p class="hint">Con menos de {{ min_minutes }} minutos por partido: {{ few_minutes | join(", ") }}.</p>
+{% endif %}
+
+<section>
+  <details>
+    <summary class="table-summary">Tabla completa de jugadores</summary>
+    <div class="table-wrap">{{ players | safe }}</div>
+  </details>
+</section>
+
+{% include "glossary.html.j2" %}
+<script src="players.js"></script>
+{% endblock %}
