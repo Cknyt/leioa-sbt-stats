@@ -13,11 +13,11 @@ from leioa_stats.metrics.lineups import elapsed_seconds
 from leioa_stats.metrics.shots import BASKET_X, COURT_LENGTH, COURT_WIDTH
 from leioa_stats.validate import POINTS
 
-MADE_COLOR = "#1a9850"
-MISSED_COLOR = "#d73027"
+MADE_COLOR = "#0d5c3a"
+MISSED_COLOR = "#5a6478"
 LINE_COLOR = "#8a8f98"
-TEAM_COLOR = "#0b3d91"
-RIVAL_COLOR = "#c0392b"
+TEAM_COLOR = "#0d5c3a"
+RIVAL_COLOR = "#5a6478"
 
 HALF_COURT = COURT_LENGTH / 2
 BASKET = (COURT_WIDTH / 2, BASKET_X / 100 * COURT_LENGTH)  # (7,5 m; 1,575 m)
