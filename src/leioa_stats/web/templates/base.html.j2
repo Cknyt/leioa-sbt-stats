@@ -6,13 +6,30 @@
   {# Salen nombres de jugadores: la web se ve con el enlace, pero no aparece en buscadores. #}
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}{{ team_name }}{% endblock %} · Estadísticas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="{{ root }}style.css">
   <script src="{{ plotly_url }}" charset="utf-8"></script>
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="{{ root }}index.html">{{ team_name }}</a>
-    <span class="subtitle">1ª División Masculina · Temporada 2026-27</span>
+    <div class="top-inner">
+      <div class="top-title">
+        <a class="brand" href="{{ root }}index.html">{{ team_name }}</a>
+        <span class="subtitle">1ª División Masculina · Temporada 2026-27</span>
+      </div>
+      {# Secciones de la portada. #}
+      <nav class="tabs" aria-label="Secciones">
+        <a href="{{ root }}index.html"{% if active == "season" %} aria-current="page"{% endif %}>Resumen</a>
+        <a href="{{ root }}index.html#partidos">Partidos</a>
+        <a href="{{ root }}index.html#jugadores">Jugadores</a>
+        <a href="{{ root }}index.html#tiro">Tiro</a>
+        <a href="{{ root }}index.html#quintetos">Quintetos</a>
+        <a href="{{ root }}index.html#liga">Liga</a>
+        <a href="{{ root }}index.html#glosario">Glosario</a>
+      </nav>
+    </div>
   </header>
   <main>
     {% block content %}{% endblock %}
