@@ -97,7 +97,29 @@ Para verla en local, sírvela con:
 uv run python -m http.server 8000 --directory site
 ```
 
-Después abre <http://localhost:8000>. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
+Después abre <http://localhost:8000>.
+
+## Publicación
+
+GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube al hosting por FTPS. Se ejecuta:
+
+- **cada lunes a las 06:00 UTC**, después de la jornada del fin de semana;
+- cada vez que llega a `main` un cambio de código;
+- a mano, desde la pestaña *Actions* > *Publicar web* > *Run workflow*.
+
+La web no se indexa en buscadores (`noindex`): se ve con el enlace, pero no aparece en Google.
+
+Configuración en GitHub (*Settings* > *Secrets and variables* > *Actions*):
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| Secreto | `FTP_SERVER` | Servidor FTP del hosting (por ejemplo, `ftp.tudominio.com`) |
+| Secreto | `FTP_USERNAME` | Usuario FTP |
+| Secreto | `FTP_PASSWORD` | Contraseña FTP |
+| Variable | `FTP_SERVER_DIR` | Carpeta de la web en el hosting, terminada en `/` (por ejemplo, `/public_html/leioa/`) |
+| Variable (opcional) | `FTP_PROTOCOL` | `ftps` por defecto; `ftp` si el hosting no admite FTP cifrado |
+
+Sin esta configuración, el workflow genera la web igualmente (se puede descargar desde la ejecución, en *Artifacts*), pero no la sube. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
 
 ## Estado
 

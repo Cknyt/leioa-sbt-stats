@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# Salen nombres de jugadores: la web se ve con el enlace, pero no aparece en buscadores. #}
+  <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}{{ team_name }}{% endblock %} · Estadísticas</title>
   <link rel="stylesheet" href="{{ root }}style.css">
   <script src="{{ plotly_url }}" charset="utf-8"></script>

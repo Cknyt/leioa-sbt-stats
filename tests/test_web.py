@@ -103,6 +103,15 @@ def test_match_page(site):
     assert "Julen Ugarte Aparicio".upper() in html
 
 
+def test_pages_are_not_indexed(site):
+    # Salen nombres de jugadores: la web no debe aparecer en buscadores.
+    _, pages = site
+    for page in pages:
+        assert '<meta name="robots" content="noindex, nofollow">' in page.read_text(
+            encoding="utf-8"
+        )
+
+
 def test_pages_have_no_missing_values(site):
     _, pages = site
     for page in pages:
