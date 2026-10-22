@@ -7,6 +7,7 @@ Tablas:
 """
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 import pandas as pd
@@ -107,14 +108,20 @@ def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     return rows
 
 
-def build_tables(raw_dir: Path = RAW_DIR) -> dict[str, pd.DataFrame]:
-    """Lee todos los partidos descargados y devuelve las tablas players, teams y shots."""
+def iter_matches(raw_dir: Path = RAW_DIR) -> Iterator[tuple[dict, dict, list[dict]]]:
+    """Recorre los partidos descargados: (datos del partido, estadísticas, jugada a jugada)."""
     matches = json.loads((raw_dir / "matches.json").read_text(encoding="utf-8"))
-    players, teams, shots = [], [], []
     for match in matches:
         match_dir = raw_dir / "matches" / match["id"]
         stats = json.loads((match_dir / "stats.json").read_text(encoding="utf-8"))
         moves = json.loads((match_dir / "moves.json").read_text(encoding="utf-8"))
+        yield match, stats, moves
+
+
+def build_tables(raw_dir: Path = RAW_DIR) -> dict[str, pd.DataFrame]:
+    """Lee todos los partidos descargados y devuelve las tablas players, teams y shots."""
+    players, teams, shots = [], [], []
+    for match, stats, moves in iter_matches(raw_dir):
         players += player_rows(match, stats)
         teams += team_rows(match, stats)
         shots += shot_rows(match, stats, moves)

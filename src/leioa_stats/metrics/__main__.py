@@ -1,4 +1,6 @@
-"""Muestra las métricas de la temporada (básicas, de tiro y avanzadas) y las guarda en CSV.
+"""Muestra las métricas de la temporada y las guarda en CSV.
+
+Incluye las básicas, las de tiro, las avanzadas, los quintetos y el +/-.
 
 Uso:
     uv run python -m leioa_stats.metrics
@@ -11,10 +13,14 @@ import pandas as pd
 from leioa_stats.download import TEAM_NAME
 from leioa_stats.metrics.advanced import games_summary, player_usage, team_advanced
 from leioa_stats.metrics.basic import player_season, team_season
+from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
 from leioa_stats.metrics.shots import add_zones, zone_summary
-from leioa_stats.parse import build_tables
+from leioa_stats.parse import build_tables, iter_matches
 
 PROCESSED_DIR = Path("data/processed")
+# Quintetos a mostrar (los de más minutos).
+TOP_LINEUPS = 10
+LINEUP_COLUMNS = ["PJ", "MIN", "PTS", "PTS_opp", "+/-", "POSS", "ORtg", "DRtg", "NETO"]
 
 TEAM_COLUMNS = ["PJ", "PTS/PJ", "TC%", "T2%", "T3%", "T1%", "eFG%", "TS%", "RT/PJ", "RO/PJ",
                 "RD/PJ", "AS/PJ", "PER/PJ", "REC/PJ", "TAP/PJ", "FP/PJ"]  # fmt: skip
@@ -26,6 +32,9 @@ def main() -> None:
     tables = build_tables()
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     tables["shots"] = add_zones(tables["shots"])
+    tables["stints"] = pd.DataFrame(
+        [row for match in iter_matches() for row in stint_rows(*match, TEAM_NAME)]
+    )
     for name, df in tables.items():
         df.to_csv(PROCESSED_DIR / f"{name}.csv", index=False)
 
@@ -49,6 +58,26 @@ def main() -> None:
     print(zone_summary(shots[shots["team"] == TEAM_NAME]).to_string())
     print("\nZONAS DE TIRO - Rivales")
     print(zone_summary(shots[shots["team"] != TEAM_NAME]).to_string())
+
+    stints = tables["stints"]
+    leioa_players = tables["players"][tables["players"]["team"] == TEAM_NAME]
+    numbers = leioa_players.groupby("player")["number"].last().to_dict()
+    lineups = lineup_summary(stints).head(TOP_LINEUPS)
+    lineups.index = [
+        "-".join(sorted((numbers[p] for p in lineup.split(" | ")), key=int))
+        for lineup in lineups.index
+    ]
+    print(f"\nQUINTETOS (por dorsales; los {TOP_LINEUPS} con más minutos)")
+    print(lineups[LINEUP_COLUMNS].to_string())
+    incomplete = stints.loc[stints["size"] != 5, "seconds"].sum() / 60
+    if incomplete:
+        print(
+            f"  {incomplete:.1f} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan"
+        )
+    legend = sorted(numbers.items(), key=lambda item: int(item[1]))
+    print("\nDORSALES: " + ", ".join(f"{number} {player}" for player, number in legend))
+    print("\n+/- Y ON/OFF (NETO = diferencia de puntos por 100 posesiones)")
+    print(player_on_off(stints).to_string())
     print(f"\nTablas guardadas en {PROCESSED_DIR}/")
 
 

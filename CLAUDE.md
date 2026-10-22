@@ -68,5 +68,7 @@ Cada métrica que se presente al entrenador debe ir acompañada de su grado de f
 - Las faltas técnicas al entrenador cuentan para el equipo, no para ningún jugador. Hay códigos de jugada sin nombre en la web (por ejemplo, `571`, que es una falta). `validate.py` avisa si aparece un código desconocido.
 - Coordenadas de tiro: `xnormalize` e `ynormalize` van de 0 a 100 sobre una cancha de 28 × 15 m, siempre atacando hacia el aro de la izquierda (x = 5,625, y = 50). Están calibradas con la línea de triple (6,75 m). Ver `metrics/shots.py`.
 - Antes de calcular métricas de un partido, revisa sus incidencias con `uv run python -m leioa_stats.validate`. Los quintetos y el +/- dependen de que los cambios estén bien anotados.
+- Minutos: los del box score (`timePlayed`) a veces difieren hasta 2-3 minutos del reloj del jugada a jugada. Para los quintetos, el +/- y el on/off se usan los del jugada a jugada, que son los coherentes con el +/- de la federación.
+- Quintetos: hay muchas combinaciones y pocos minutos por quinteto. No saques conclusiones de un quinteto con pocos minutos ni de un on/off con pocos partidos.
 - La muestra es pequeña (26 jornadas): indica el tamaño de muestra y evita sacar conclusiones con pocos minutos o pocos intentos.
 - Si una métrica es una estimación (por ejemplo, las posesiones), explica la fórmula usada.
