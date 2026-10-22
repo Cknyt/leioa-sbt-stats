@@ -49,6 +49,13 @@ SCOUTING_COLUMNS = ["PJ", "MIN/PJ", "PTS/PJ", "USO%", "TS%", "eFG%", "T3A", "T3%
                     "AS/PJ", "PER/PJ", "% cerca del aro", "% triples", "Perfil"]  # fmt: skip
 LEAGUE_COLUMNS = ["PJ", "V", "D", "RITMO", "ORtg", "DRtg", "NETO", "eFG%", "PER%", "RO%", "TL/TC"]
 FACTOR_ROWS = ["Ritmo", "Eficiencia (pts/100 pos.)", "eFG%", "PER%", "RO%", "TL/TC"]
+# Cifras destacadas de la portada: (columna de la liga, término del glosario, explicación).
+KPIS = [
+    ("RITMO", "Ritmo", "posesiones por 40 minutos"),
+    ("ORtg", "Ataque", "puntos por 100 posesiones"),
+    ("DRtg", "Defensa", "puntos encajados por 100 posesiones"),
+    ("NETO", "Neto", "diferencia por 100 posesiones"),
+]
 # Jugadores con mapa de tiros propio en la página de cada equipo (los que más tiran).
 TOP_SHOOTERS = 6
 
@@ -242,6 +249,9 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
             {
                 "match": match,
                 "title": match_title(match),
+                "home": display_name(match["local"]),
+                "away": display_name(match["visitor"]),
+                "own_home": match["local"] == team_name,
                 "won": won,
                 "date": match_date(match, with_time=False),
                 "pace": number(row["RITMO"]),
@@ -254,7 +264,32 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
     incomplete = stints.loc[stints["size"] != 5, "seconds"].sum() / 60
     own_ids = {match["id"] for match, _, _ in matches}
     rival_shots = shots[shots["match_id"].isin(own_ids) & (shots["team"] != team_name)]
+    zones = zone_summary(shots[shots["team"] == team_name])
+    team_ranks = ranks(league, team_name)
+    kpis = [
+        {
+            "term": term,
+            "value": ("+" if column == "NETO" and league.loc[team_name, column] > 0 else "")
+            + number(league.loc[team_name, column]),
+            "detail": detail,
+            "rank": team_ranks[column],
+        }
+        for column, term, detail in KPIS
+    ]
     return {
+        "kpis": kpis,
+        "n_teams": len(league),
+        "zone_bars": [
+            {
+                "zone": zone,
+                "attempts": int(row["TCA"]),
+                "pct": number(row["%"]) if row["TCA"] else "–",
+                "share": number(row["% de los tiros"]),
+                # Ancho de la barra en CSS: con punto decimal, no con coma.
+                "width": f"{row['% de los tiros']:.1f}",
+            }
+            for zone, row in zones.iterrows()
+        ],
         "insights": insights,
         "games": games,
         "wins": sum(g["won"] for g in games),
@@ -267,7 +302,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         "lineups_incomplete": number(round(incomplete, 1)) if incomplete else None,
         "legend": legend(numbers),
         "shots": charts.to_html(charts.shot_chart(shots[shots["team"] == team_name])),
-        "zones": table(zone_summary(shots[shots["team"] == team_name]), "Zona"),
+        "zones": table(zones, "Zona"),
         "zones_rivals": table(zone_summary(rival_shots), "Zona"),
         "issues_total": sum(g["issues"] for g in games),
         "next_match": next_match,
@@ -412,6 +447,7 @@ def build_site(
         out_dir / "index.html",
         "season.html.j2",
         "",
+        active="season",
         **season_page(own_matches, tables, stints[team_name], team_name, upcoming),
     )
     for match, stats, moves in own_matches:

@@ -1,47 +1,70 @@
 {% extends "base.html.j2" %}
 {% block title %}Temporada{% endblock %}
 {% block content %}
-<section class="hero">
-  <h1>Temporada</h1>
-  <p class="record"><strong>{{ wins }}</strong> victorias · <strong>{{ losses }}</strong> derrotas</p>
-  {% if n_games < 8 %}
-  <p class="note">Solo hay {{ n_games }} partidos: las cifras describen lo que ha pasado, pero todavía no permiten sacar conclusiones (sobre todo las de quintetos y on/off).</p>
+<div class="overview">
+  <section class="summary">
+    <h1>Temporada</h1>
+    <div class="record-big">
+      <div class="tally win"><strong>{{ wins }}</strong><span>victorias</span></div>
+      <span class="dash" aria-hidden="true">–</span>
+      <div class="tally loss"><strong>{{ losses }}</strong><span>derrotas</span></div>
+      <p class="streak" aria-label="Resultados por jornada">
+        {% for g in games %}<span class="badge {{ 'win' if g.won else 'loss' }}" title="Jornada {{ g.match.round }}">{{ 'V' if g.won else 'D' }}</span>{% endfor %}
+      </p>
+    </div>
+    {% if n_games < 8 %}
+    <p class="note">Solo hay {{ n_games }} partidos: las cifras describen lo que ha pasado, pero todavía no permiten sacar conclusiones (sobre todo las de quintetos y on/off).</p>
+    {% endif %}
+  </section>
+
+  {% if next_match %}
+  <section class="next-card">
+    <p class="eyebrow">Próximo partido · Jornada {{ next_match.round }}</p>
+    <p class="next-rival">{{ next_rival }}</p>
+    <p class="chips"><span class="chip">{{ next_date }}</span><span class="chip accent">{{ 'En casa' if next_home else 'Fuera' }}</span></p>
+    <a class="button" href="equipos/{{ next_rival_slug }}.html">Ver el informe del rival →</a>
+  </section>
   {% endif %}
-  <p><a href="equipos/{{ own_slug }}.html">Jugadores en detalle: mapa de tiros de cada uno →</a></p>
+</div>
+
+<div class="kpis">
+  {% for k in kpis %}
+  <div class="kpi">
+    <span class="kpi-label" data-term="{{ k.term }}">{{ k.term }}</span>
+    <strong>{{ k.value }}</strong>
+    <span class="kpi-detail">{{ k.detail }} · {{ k.rank }}º de {{ n_teams }}</span>
+  </div>
+  {% endfor %}
+</div>
+<p class="hint">Puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor; en ritmo, el más rápido).</p>
+
+<section class="plain" id="partidos">
+  <h2>Partidos</h2>
+  <div class="game-grid">
+  {% for g in games %}
+    <a class="game" href="partidos/{{ g.match.id }}.html" aria-label="Jornada {{ g.match.round }}: {{ g.title }}">
+      <span class="game-meta"><span>Jornada {{ g.match.round }} · {{ g.date }}</span>{% if g.issues %}<span class="warn">{{ g.issues }} aviso{{ 's' if g.issues > 1 }} en los datos</span>{% endif %}</span>
+      <span class="game-score">
+        <span class="badge big {{ 'win' if g.won else 'loss' }}">{{ 'V' if g.won else 'D' }}</span>
+        <span class="game-teams">
+          <span class="{{ 'own' if g.own_home }}"><span>{{ g.home }}</span><b>{{ g.match.local_score }}</b></span>
+          <span class="{{ 'own' if not g.own_home }}"><span>{{ g.away }}</span><b>{{ g.match.visitor_score }}</b></span>
+        </span>
+      </span>
+      <span class="game-stats">
+        <span data-term="Ritmo">Ritmo <b>{{ g.pace }}</b></span>
+        <span data-term="ORtg">ORtg <b>{{ g.ortg }}</b></span>
+        <span data-term="DRtg">DRtg <b>{{ g.drtg }}</b></span>
+        <span data-term="Neto">Neto <b>{{ g.net }}</b></span>
+      </span>
+    </a>
+  {% endfor %}
+  </div>
 </section>
 
 {% with ideas_title = "Lo que pueden plantearnos los rivales" %}
 {% include "insights.html.j2" %}
 {% endwith %}
-
-{% if next_match %}
-<section class="next">
-  <h2>Próximo partido</h2>
-  <p class="meta">Jornada {{ next_match.round }} · {{ next_date }} · {{ 'en casa' if next_home else 'fuera' }}</p>
-  <p class="next-rival">{{ next_rival }}</p>
-  <p><a class="button" href="equipos/{{ next_rival_slug }}.html">Ver el informe del rival →</a></p>
-</section>
-{% endif %}
-
-<section>
-  <h2>Partidos</h2>
-  <div class="table-wrap">
-    <table class="data">
-      <thead><tr><th>J</th><th>Fecha</th><th>Partido</th><th>Ritmo</th><th>ORtg</th><th>DRtg</th><th>Neto</th><th>Datos</th></tr></thead>
-      <tbody>
-      {% for g in games %}
-        <tr>
-          <td>{{ g.match.round }}</td>
-          <td>{{ g.date }}</td>
-          <td class="left"><span class="badge {{ 'win' if g.won else 'loss' }}">{{ 'V' if g.won else 'D' }}</span> <a href="partidos/{{ g.match.id }}.html">{{ g.title }}</a></td>
-          <td>{{ g.pace }}</td><td>{{ g.ortg }}</td><td>{{ g.drtg }}</td><td>{{ g.net }}</td>
-          <td>{% if g.issues %}<span class="warn">{{ g.issues }} aviso{{ 's' if g.issues > 1 }}</span>{% else %}✓{% endif %}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
 
 <section>
   <h2>Equipo frente a sus rivales</h2>
@@ -52,13 +75,25 @@
   <div class="table-wrap">{{ advanced | safe }}</div>
 </section>
 
-<section>
+<section id="jugadores">
   <h2>Jugadores</h2>
   <div class="table-wrap">{{ players | safe }}</div>
+  <p class="back"><a href="equipos/{{ own_slug }}.html">Mapa de tiros de cada jugador →</a></p>
 </section>
 
-<section>
-  <h2>Mapa de tiros</h2>
+<section id="tiro">
+  <h2>De dónde salen los tiros</h2>
+  <p class="hint">La barra es el % de los tiros de campo que salen de cada zona; la cifra, el acierto.</p>
+  <div class="zone-bars">
+  {% for z in zone_bars %}
+    <div class="zone-bar">
+      <span class="zone-name">{{ z.zone }}</span>
+      <span class="bar" role="img" aria-label="{{ z.share }} % de los tiros"><span style="width: {{ z.width }}%"></span></span>
+      <span class="zone-value"><b>{{ z.pct }}{% if z.attempts %} %{% endif %}</b> <span>{{ z.attempts }} tiros · {{ z.share }} %</span></span>
+    </div>
+  {% endfor %}
+  </div>
+  <h3>Mapa de tiros</h3>
   <div class="chart">{{ shots | safe }}</div>
   <h3>Por zonas</h3>
   <div class="table-wrap">{{ zones | safe }}</div>
@@ -72,7 +107,7 @@
   <div class="table-wrap">{{ on_off | safe }}</div>
 </section>
 
-<section>
+<section id="quintetos">
   <h2>Quintetos</h2>
   <p class="hint">Los 10 con más minutos, por dorsales.</p>
   <div class="table-wrap">{{ lineups | safe }}</div>

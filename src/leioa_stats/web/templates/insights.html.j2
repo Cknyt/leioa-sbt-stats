@@ -1,7 +1,8 @@
-{# Conclusiones automáticas de un equipo. Variables: insights, ideas_title. #}
+{# Conclusiones automáticas de un equipo, en tarjetas. Variables: insights, ideas_title. #}
 <section class="insights">
   <h2>Conclusiones</h2>
   <p class="hint">Generadas automáticamente con reglas fijas a partir de los números de esta web (cada frase indica de dónde sale). Con pocos partidos, son orientativas.</p>
+  <div class="insight-grid">
   {% for title, items, kind in [
       ("Estilo de juego", insights.style, "style"),
       ("Fortalezas", insights.strengths, "good"),
@@ -10,10 +11,17 @@
       (ideas_title, insights.ideas, "ideas"),
   ] %}
     {% if items %}
-    <h3 class="insight-title {{ kind }}">{{ title }}</h3>
-    <ul class="insight-list {{ kind }}">
-      {% for item in items %}<li>{{ item }}</li>{% endfor %}
-    </ul>
+    <details class="insight-card {{ kind }}" open>
+      <summary><span class="dot" aria-hidden="true"></span>{{ title }}<span class="count">{{ items | length }}</span></summary>
+      <ul>
+        {# "Titular: de dónde sale". El titular va en negrita; el dato, debajo. #}
+        {% for item in items %}
+          {% set head, sep, tail = item.partition(": ") %}
+          <li>{% if sep %}<strong>{{ head }}</strong><span>{{ tail }}</span>{% else %}<strong>{{ item }}</strong>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </details>
     {% endif %}
   {% endfor %}
+  </div>
 </section>

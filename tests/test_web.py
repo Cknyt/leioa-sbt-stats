@@ -58,7 +58,9 @@ def test_build_site_creates_pages(site):
 def test_next_match_links_to_rival_report(site):
     out, _ = site
     html = (out / "index.html").read_text(encoding="utf-8")
-    assert "Jornada 2 · 17/10/2026 18:00 · fuera" in html
+    assert "Próximo partido · Jornada 2" in html
+    assert '<span class="chip">17/10/2026 18:00</span>' in html
+    assert '<span class="chip accent">Fuera</span>' in html
     assert 'href="equipos/easo-basket.html">Ver el informe del rival' in html
 
 
@@ -85,7 +87,10 @@ def test_slug(name, expected):
 def test_season_page(site):
     out, _ = site
     html = (out / "index.html").read_text(encoding="utf-8")
-    assert "1</strong> victorias" in html
+    assert "<strong>1</strong><span>victorias" in html
+    # Cifras destacadas con su puesto en la liga y barras de tiro por zonas.
+    assert html.count('class="kpi"') == len(build.KPIS)
+    assert 'class="zone-bar"' in html
     assert 'href="partidos/99138.html"' in html
     assert "Leioa SBT 76-70 Easo Basket" in html
     assert "Iñigo Carneros Villar" in html
