@@ -114,16 +114,17 @@ Configuración en GitHub (*Settings* > *Secrets and variables* > *Actions*):
 | Tipo | Nombre | Valor actual |
 |---|---|---|
 | Secreto | `FTP_SERVER` | Servidor FTP que muestra el panel de cdmon, solo el nombre: sin `ftp://`, puerto ni carpeta |
-| Secreto | `FTP_USERNAME` | Usuario FTP **principal** de cdmon (entra en la raíz de la cuenta, donde están `logs`, `tmp` y `web`) |
+| Secreto | `FTP_USERNAME` | Usuario FTP **secundario** de cdmon, limitado a `web/leioa`: al conectarse solo ve esa carpeta |
 | Secreto | `FTP_PASSWORD` | Contraseña de ese usuario |
-| Variable | `FTP_SERVER_DIR` | `web/leioa/`: la ruta se cuenta desde donde entra el usuario FTP. Con un usuario secundario limitado a `web/leioa` sería `./` |
+| Variable | `FTP_SERVER_DIR` | `./`: la ruta se cuenta desde donde entra el usuario FTP, y este entra directamente en `web/leioa`. Con el usuario principal, que entra en la raíz de la cuenta, sería `web/leioa/` |
 | Variable | `FTP_PROTOCOL` | `ftp`: el servidor de cdmon no admite FTP cifrado (responde `500 AUTH not understood` a FTPS) |
 
 Notas:
 
 - **Nunca apuntes `FTP_SERVER_DIR` a `web/`.** La web corporativa del mismo hosting se publica con la misma herramienta y tiene su registro `web/.ftp-deploy-sync-state.json`: la subida lo tomaría como propio y borraría sus archivos.
 - **La subida solo toca lo suyo:** guarda su registro en `web/leioa/.ftp-deploy-sync-state.json`, sube solo las diferencias y solo borra archivos que subió ella.
-- **Pendiente (seguridad):** el FTP va sin cifrar y con el usuario principal, que da acceso a todo el hosting. Es más seguro crear en cdmon un usuario FTP secundario limitado a `web/leioa`, poner sus datos en los secretos y cambiar `FTP_SERVER_DIR` a `./`. Si el plan de cdmon ofrece SFTP, mejor aún (requiere otra acción de subida en el workflow).
+- **Seguridad:** el FTP va sin cifrar, pero con un usuario que solo puede tocar `web/leioa`: si su contraseña se filtrara, la web corporativa y el resto del hosting quedan fuera de su alcance. Si el plan de cdmon ofrece SFTP, sería aún mejor (requiere otra acción de subida en el workflow).
+- **Antes de cambiar el usuario FTP o `FTP_SERVER_DIR`,** conéctate con ese usuario en FileZilla y mira qué ve al entrar: si ve `index.html`, `equipos` y `partidos`, la carpeta es `./`.
 - **Errores ya vistos:**
   - `ENOTFOUND`: `FTP_SERVER` mal escrito.
   - `500 AUTH not understood`: el servidor no admite FTPS (usar `FTP_PROTOCOL=ftp`).
