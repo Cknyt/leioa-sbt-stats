@@ -56,6 +56,7 @@ Crea cada archivo o carpeta cuando haga falta, no antes.
 - Cómo se obtienen (detalle en `src/leioa_stats/download.py`):
   - La lista de partidos de cada jornada sale de `esb.../FCBQWeb/resultats/<grupo>/<jornada>`. La respuesta va en base64 y necesita una clave que viene en el HTML de la página del grupo.
   - Las estadísticas y el jugada a jugada de un partido salen de `msstats.../getJsonWithMatchStats|Moves/<universallyid>` y no necesitan clave.
+- `data/raw/matches.json` contiene los partidos de **toda la liga**. Para las métricas del Leioa, filtra con `download.involves(match, TEAM_NAME)`. `data/raw/upcoming.json` tiene sus próximos partidos.
 - Respeta el servidor: guarda en local lo que ya se ha descargado, no repitas descargas innecesarias y deja una pausa entre peticiones.
 - No subas al repositorio claves, tokens ni configuración personal; van en `.env`, que está ignorado.
 
@@ -65,8 +66,9 @@ Cada métrica que se presente al entrenador debe ir acompañada de su grado de f
 
 - Los datos se anotan a mano en la mesa, así que puede haber errores. Hay que contrastar los totales del jugada a jugada con el box score.
 - Los tapones sí aparecen en el partido 99138, aunque al principio se creyó que no se registraban. Hay que confirmarlo con más partidos antes de usarlos.
-- Parte de los rebotes y pérdidas son "de equipo" (sin jugador): el total del equipo es mayor que la suma de los jugadores. Para calcular posesiones se usan los totales del equipo.
-- Las faltas técnicas al entrenador cuentan para el equipo, no para ningún jugador. Hay códigos de jugada sin nombre en la web (por ejemplo, `571`, que es una falta). `validate.py` avisa si aparece un código desconocido.
+- Parte de los rebotes, pérdidas y recuperaciones son "de equipo" (sin jugador): el total del equipo es mayor que la suma de los jugadores. Para calcular posesiones se usan los totales del equipo.
+- Un mate tiene su propio código (`100`) y es una canasta de 2: está en `validate.POINTS`, que usan todos los cálculos de puntos.
+- Las faltas técnicas al entrenador cuentan para el equipo, no para ningún jugador. Hay códigos de jugada sin nombre en la web (por ejemplo, `565` y `571`, que son faltas). `validate.py` avisa si aparece un código desconocido: antes de darlo por error de la mesa, comprueba si es un tipo de jugada que aún no conocemos.
 - Coordenadas de tiro: `xnormalize` e `ynormalize` van de 0 a 100 sobre una cancha de 28 × 15 m, siempre atacando hacia el aro de la izquierda (x = 5,625, y = 50). Están calibradas con la línea de triple (6,75 m). Ver `metrics/shots.py`.
 - Antes de calcular métricas de un partido, revisa sus incidencias con `uv run python -m leioa_stats.validate`. Los quintetos y el +/- dependen de que los cambios estén bien anotados.
 - Minutos: los del box score (`timePlayed`) a veces difieren hasta 2-3 minutos del reloj del jugada a jugada. Para los quintetos, el +/- y el on/off se usan los del jugada a jugada, que son los coherentes con el +/- de la federación.

@@ -21,9 +21,11 @@ from collections import Counter
 import pandas as pd
 
 from leioa_stats.validate import (
+    DUNK,
     FT_MADE,
     FT_MISSED,
     OFF_REBOUND,
+    POINTS,
     SUB_IN,
     SUB_OUT,
     THREE_MADE,
@@ -33,10 +35,10 @@ from leioa_stats.validate import (
     TWO_MISSED,
 )
 
-POINTS = {FT_MADE: 1, TWO_MADE: 2, THREE_MADE: 3}
 # Jugada -> contadores que suma para estimar posesiones.
 POSSESSION_COUNTERS = {
     TWO_MADE: "TCA",
+    DUNK: "TCA",
     TWO_MISSED: "TCA",
     THREE_MADE: "TCA",
     THREE_MISSED: "TCA",

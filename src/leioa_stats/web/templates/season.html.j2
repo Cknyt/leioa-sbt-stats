@@ -7,7 +7,17 @@
   {% if n_games < 8 %}
   <p class="note">Solo hay {{ n_games }} partidos: las cifras describen lo que ha pasado, pero todavía no permiten sacar conclusiones (sobre todo las de quintetos y on/off).</p>
   {% endif %}
+  <p><a href="equipos/{{ own_slug }}.html">Jugadores en detalle: mapa de tiros de cada uno →</a></p>
 </section>
+
+{% if next_match %}
+<section class="next">
+  <h2>Próximo partido</h2>
+  <p class="meta">Jornada {{ next_match.round }} · {{ next_date }} · {{ 'en casa' if next_home else 'fuera' }}</p>
+  <p class="next-rival">{{ next_rival }}</p>
+  <p><a class="button" href="equipos/{{ next_rival_slug }}.html">Ver el informe del rival →</a></p>
+</section>
+{% endif %}
 
 <section>
   <h2>Partidos</h2>
@@ -64,6 +74,24 @@
   <div class="table-wrap">{{ lineups | safe }}</div>
   {% if lineups_incomplete %}<p class="note">{{ lineups_incomplete }} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan.</p>{% endif %}
   <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
+</section>
+
+<section id="liga">
+  <h2>Liga</h2>
+  <p class="hint">Los {{ league_rows | length }} equipos con {{ n_league_games }} partidos jugados. Pulsa en un equipo para ver su informe de scouting.</p>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Equipo</th>{% for c in league_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in league_rows %}
+        <tr class="{{ 'own' if row.own }}{{ ' next' if row.next }}">
+          <th><a href="equipos/{{ row.slug }}.html">{{ row.name }}</a>{% if row.next %} <span class="tag">próximo rival</span>{% endif %}</th>
+          {% for v in row['values'] %}<td>{{ v }}</td>{% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 {% include "glossary.html.j2" %}

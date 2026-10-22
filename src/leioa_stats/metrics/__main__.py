@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from leioa_stats.download import TEAM_NAME
+from leioa_stats.download import TEAM_NAME, involves
 from leioa_stats.metrics.advanced import games_summary, player_usage, team_advanced
 from leioa_stats.metrics.basic import player_season, team_season
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
@@ -32,15 +32,18 @@ def main() -> None:
     tables = build_tables()
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     tables["shots"] = add_zones(tables["shots"])
+    # Los partidos descargados son los de toda la liga: aquí solo cuentan los del equipo.
+    own_matches = [m for m in iter_matches() if involves(m[0], TEAM_NAME)]
+    own_ids = {match["id"] for match, _, _ in own_matches}
     tables["stints"] = pd.DataFrame(
-        [row for match in iter_matches() for row in stint_rows(*match, TEAM_NAME)]
+        [row for match in own_matches for row in stint_rows(*match, TEAM_NAME)]
     )
     for name, df in tables.items():
         df.to_csv(PROCESSED_DIR / f"{name}.csv", index=False)
 
     pd.set_option("display.width", 200)
     pd.set_option("display.max_columns", 30)
-    games = tables["teams"]["match_id"].nunique()
+    games = len(own_ids)
     print(f"{TEAM_NAME} - {games} partidos\n")
     print("EQUIPO")
     print(team_season(tables["teams"], TEAM_NAME)[TEAM_COLUMNS].to_string())
@@ -57,7 +60,8 @@ def main() -> None:
     print(f"\nZONAS DE TIRO - {TEAM_NAME}")
     print(zone_summary(shots[shots["team"] == TEAM_NAME]).to_string())
     print("\nZONAS DE TIRO - Rivales")
-    print(zone_summary(shots[shots["team"] != TEAM_NAME]).to_string())
+    rival_shots = shots[shots["match_id"].isin(own_ids) & (shots["team"] != TEAM_NAME)]
+    print(zone_summary(rival_shots).to_string())
 
     stints = tables["stints"]
     leioa_players = tables["players"][tables["players"]["team"] == TEAM_NAME]

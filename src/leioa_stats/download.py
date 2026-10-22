@@ -1,4 +1,4 @@
-"""Descarga de los partidos del Leioa SBT publicados en basketbasko.com.
+"""Descarga de los partidos de la liga del Leioa SBT publicados en basketbasko.com.
 
 Uso:
     uv run python -m leioa_stats.download
@@ -6,7 +6,8 @@ Uso:
 Pasos:
 1. Lee la clave de la API en el HTML de la página del grupo.
 2. Pide la lista de partidos de cada jornada cuya fecha ya ha pasado.
-3. Se queda con los partidos ya jugados del equipo.
+3. Se queda con los partidos ya jugados de toda la liga (para el scouting de rivales) y con
+   los próximos partidos del equipo (data/raw/upcoming.json).
 4. Descarga las estadísticas y el jugada a jugada de cada partido en
    data/raw/matches/<idPartido>/. Si ya están descargados, no los vuelve a pedir.
 """
@@ -65,29 +66,52 @@ def rounds_until(rounds: dict, today: date) -> list[int]:
     )
 
 
-def played_team_matches(rounds: dict, team_name: str) -> list[dict]:
-    """Partidos ya jugados del equipo, con lo necesario para descargarlos."""
+def match_record(number: str, match: dict) -> dict:
+    """Datos de un partido de la lista de una jornada que usamos en el resto del proyecto."""
+    played = match["state"] == "1"
+    return {
+        "id": match["idMatch"],
+        "uid": match["universallyid"],
+        "round": int(number),
+        "datetime": match["matchDay"],
+        "local": match["nameLocalTeam"],
+        "visitor": match["nameVisitorTeam"],
+        "local_score": int(match["localScore"]) if played else None,
+        "visitor_score": int(match["visitorScore"]) if played else None,
+    }
+
+
+def round_order(match: dict) -> tuple[int, str]:
+    return match["round"], match["id"]
+
+
+def involves(match: dict, team_name: str) -> bool:
+    return team_name in (match["local"], match["visitor"])
+
+
+def played_matches(rounds: dict, team_name: str | None = None) -> list[dict]:
+    """Partidos ya jugados (de un equipo, o de toda la liga si no se indica)."""
     matches = []
     for number, round_ in rounds.items():
         for match in (round_.get("matches") or {}).values():
-            if team_name not in (match["nameLocalTeam"], match["nameVisitorTeam"]):
-                continue
             # state "1" = partido jugado. Sin universallyid no hay estadísticas publicadas.
             if match["state"] != "1" or not match["universallyid"]:
                 continue
-            matches.append(
-                {
-                    "id": match["idMatch"],
-                    "uid": match["universallyid"],
-                    "round": int(number),
-                    "datetime": match["matchDay"],
-                    "local": match["nameLocalTeam"],
-                    "visitor": match["nameVisitorTeam"],
-                    "local_score": int(match["localScore"]),
-                    "visitor_score": int(match["visitorScore"]),
-                }
-            )
-    return sorted(matches, key=lambda m: m["round"])
+            record = match_record(number, match)
+            if team_name is None or involves(record, team_name):
+                matches.append(record)
+    return sorted(matches, key=round_order)
+
+
+def upcoming_matches(rounds: dict, team_name: str) -> list[dict]:
+    """Partidos del equipo que aún no se han jugado."""
+    matches = [
+        match_record(number, match)
+        for number, round_ in rounds.items()
+        for match in (round_.get("matches") or {}).values()
+        if match["state"] != "1"
+    ]
+    return sorted((m for m in matches if involves(m, team_name)), key=round_order)
 
 
 def is_downloaded(match_dir: Path) -> bool:
@@ -114,8 +138,8 @@ class Downloader:
         return response.text
 
 
-def fetch_team_matches(downloader: Downloader, group_id: int, team_name: str) -> list[dict]:
-    """Recorre las jornadas ya disputadas y devuelve los partidos jugados del equipo."""
+def fetch_league(downloader: Downloader, group_id: int, team_name: str) -> tuple[list, list]:
+    """Partidos jugados de toda la liga y próximos partidos del equipo."""
     key = extract_api_key(downloader.get(GROUP_PAGE_URL.format(group_id=group_id)))
 
     def fetch_round(number: int) -> dict:
@@ -124,14 +148,21 @@ def fetch_team_matches(downloader: Downloader, group_id: int, team_name: str) ->
 
     # La respuesta de cualquier jornada trae el calendario completo (fechas de las 26).
     calendar = fetch_round(1)
-    found = {}
-    for number in rounds_until(calendar, date.today()):
+    played_rounds = rounds_until(calendar, date.today())
+    # También pedimos la jornada siguiente, para conocer al próximo rival.
+    next_round = max(played_rounds, default=0) + 1
+    to_fetch = played_rounds + ([next_round] if str(next_round) in calendar else [])
+    played, upcoming = {}, {}
+    for number in to_fetch:
         rounds = calendar if number == 1 else fetch_round(number)
         # Cada respuesta trae los partidos de la jornada pedida y a veces los de la siguiente;
         # nos quedamos solo con los de la pedida.
-        for match in played_team_matches({str(number): rounds[str(number)]}, team_name):
-            found[match["id"]] = match
-    return sorted(found.values(), key=lambda m: m["round"])
+        this_round = {str(number): rounds[str(number)]}
+        for match in played_matches(this_round):
+            played[match["id"]] = match
+        for match in upcoming_matches(this_round, team_name):
+            upcoming[match["id"]] = match
+    return sorted(played.values(), key=round_order), sorted(upcoming.values(), key=round_order)
 
 
 def download_match(downloader: Downloader, match: dict, raw_dir: Path) -> bool:
@@ -149,18 +180,24 @@ def download_match(downloader: Downloader, match: dict, raw_dir: Path) -> bool:
 
 def main() -> None:
     downloader = Downloader()
-    matches = fetch_team_matches(downloader, GROUP_ID, TEAM_NAME)
+    matches, upcoming = fetch_league(downloader, GROUP_ID, TEAM_NAME)
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    (RAW_DIR / "matches.json").write_text(
-        json.dumps(matches, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    print(f"{len(matches)} partidos jugados de {TEAM_NAME}:")
+    for name, data in (("matches", matches), ("upcoming", upcoming)):
+        (RAW_DIR / f"{name}.json").write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    print(f"{len(matches)} partidos jugados en la liga:")
     for match in matches:
         new = download_match(downloader, match, RAW_DIR)
         status = "descargado" if new else "ya estaba"
         print(
             f"  J{match['round']:>2} {match['local']} {match['local_score']}-"
             f"{match['visitor_score']} {match['visitor']} ({status})"
+        )
+    for match in upcoming:
+        print(
+            f"Próximo: J{match['round']} {match['local']} - {match['visitor']} "
+            f"({match['datetime']})"
         )
 
 

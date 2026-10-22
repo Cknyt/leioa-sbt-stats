@@ -47,9 +47,26 @@ def test_rounds_until(round_2_response):
     assert download.rounds_until(rounds, date(2026, 10, 18)) == [1, 2]
 
 
-def test_played_team_matches_skips_unplayed(round_2_response):
+def test_played_matches_of_the_whole_league(round_2_response):
     rounds = round_2_response["messageData"]["rounds"]
-    matches = download.played_team_matches(rounds, "LEIOA SBT")
+    matches = download.played_matches(rounds)
+    # La respuesta trae la jornada 2 (jugada, 7 partidos) y la 3 (sin jugar).
+    assert len(matches) == 7
+    assert {m["round"] for m in matches} == {2}
+
+
+def test_upcoming_matches(round_2_response):
+    rounds = round_2_response["messageData"]["rounds"]
+    upcoming = download.upcoming_matches(rounds, "LEIOA SBT")
+    assert [(m["round"], m["local"], m["visitor"]) for m in upcoming] == [
+        (3, "LEIOA SBT", "CB SANTURTZI SK")
+    ]
+    assert upcoming[0]["local_score"] is None
+
+
+def test_played_matches_skips_unplayed(round_2_response):
+    rounds = round_2_response["messageData"]["rounds"]
+    matches = download.played_matches(rounds, "LEIOA SBT")
     # La jornada 3 (Leioa SBT - CB Santurtzi SK) aún no se ha jugado.
     assert matches == [
         {

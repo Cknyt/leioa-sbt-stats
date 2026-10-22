@@ -1,6 +1,12 @@
-"""Genera la web estática en site/: una página de temporada y una por partido."""
+"""Genera la web estática en site/.
 
+Páginas: la temporada del equipo, una por cada partido suyo y una por cada equipo de la liga
+(scouting de rivales).
+"""
+
+import json
 import shutil
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -8,7 +14,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from plotly.offline import get_plotlyjs_version
 
-from leioa_stats.download import TEAM_NAME
+from leioa_stats.download import TEAM_NAME, involves
 from leioa_stats.metrics.advanced import (
     four_factors,
     games_summary,
@@ -18,6 +24,7 @@ from leioa_stats.metrics.advanced import (
     team_games,
 )
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
+from leioa_stats.metrics.league import league_average, league_table, player_profiles, ranks
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
@@ -35,6 +42,12 @@ PLAYER_COLUMNS = ["PJ", "TIT", "MIN/PJ", "PTS/PJ", "RT/PJ", "AS/PJ", "PER/PJ", "
 BOX_COLUMNS = ["Dorsal", "MIN", "PTS", "TC", "T3", "T1", "RO", "RD", "RT", "AS", "PER", "REC",
                "TAP", "FP", "FR", "VAL", "+/-"]  # fmt: skip
 LINEUP_COLUMNS = ["MIN", "PTS", "PTS_opp", "+/-", "POSS", "ORtg", "DRtg", "NETO"]
+SCOUTING_COLUMNS = ["PJ", "MIN/PJ", "PTS/PJ", "USO%", "TS%", "eFG%", "T3A", "T3%", "T1%", "RT/PJ",
+                    "AS/PJ", "PER/PJ", "% cerca del aro", "% triples", "Perfil"]  # fmt: skip
+LEAGUE_COLUMNS = ["PJ", "V", "D", "RITMO", "ORtg", "DRtg", "NETO", "eFG%", "PER%", "RO%", "TL/TC"]
+FACTOR_ROWS = ["Ritmo", "Eficiencia (pts/100 pos.)", "eFG%", "PER%", "RO%", "TL/TC"]
+# Jugadores con mapa de tiros propio en la página de cada equipo (los que más tiran).
+TOP_SHOOTERS = 6
 
 
 def display_name(name: str) -> str:
@@ -48,6 +61,12 @@ def display_name(name: str) -> str:
         return w if is_acronym else w.capitalize()
 
     return " ".join(word(w) for w in name.split())
+
+
+def slug(name: str) -> str:
+    """'ELABORADOS NATURALES VALLE DE EGÜÉS' -> 'elaborados-naturales-valle-de-egues'."""
+    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    return "-".join("".join(c if c.isalnum() else " " for c in ascii_name.lower()).split())
 
 
 def number(value: float) -> str:
@@ -173,12 +192,29 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
     }
 
 
-def season_page(matches, tables, stints, team_name) -> dict:
-    """Datos de la página de temporada."""
+def season_page(matches, tables, stints, team_name, upcoming) -> dict:
+    """Datos de la página de temporada. `matches` son solo los partidos del equipo."""
     players = tables["players"]
     shots = tables["shots"]
     own_players = players[players["team"] == team_name]
     numbers = own_players.groupby("player")["number"].last().to_dict()
+
+    league = league_table(tables["teams"])
+    next_match = upcoming[0] if upcoming else None
+    next_rival = None
+    if next_match:
+        home = next_match["local"] == team_name
+        next_rival = next_match["visitor"] if home else next_match["local"]
+    league_rows = [
+        {
+            "name": display_name(name),
+            "slug": slug(name),
+            "own": name == team_name,
+            "next": name == next_rival,
+            "values": [number(row[c]) for c in LEAGUE_COLUMNS],
+        }
+        for name, row in league.iterrows()
+    ]
 
     team = team_season(tables["teams"], team_name)
     team.index = [display_name(i) for i in team.index]
@@ -213,6 +249,8 @@ def season_page(matches, tables, stints, team_name) -> dict:
             }
         )
     incomplete = stints.loc[stints["size"] != 5, "seconds"].sum() / 60
+    own_ids = {match["id"] for match, _, _ in matches}
+    rival_shots = shots[shots["match_id"].isin(own_ids) & (shots["team"] != team_name)]
     return {
         "games": games,
         "wins": sum(g["won"] for g in games),
@@ -226,8 +264,94 @@ def season_page(matches, tables, stints, team_name) -> dict:
         "legend": legend(numbers),
         "shots": charts.to_html(charts.shot_chart(shots[shots["team"] == team_name])),
         "zones": table(zone_summary(shots[shots["team"] == team_name]), "Zona"),
-        "zones_rivals": table(zone_summary(shots[shots["team"] != team_name]), "Zona"),
+        "zones_rivals": table(zone_summary(rival_shots), "Zona"),
         "issues_total": sum(g["issues"] for g in games),
+        "next_match": next_match,
+        "next_date": match_date(next_match) if next_match else None,
+        "next_home": next_match is not None and next_match["local"] == team_name,
+        "next_rival": display_name(next_rival) if next_rival else None,
+        "next_rival_slug": slug(next_rival) if next_rival else None,
+        "league_columns": LEAGUE_COLUMNS,
+        "league_rows": league_rows,
+    }
+
+
+def team_page(team_name, all_matches, tables, stints, league, average, own_team) -> dict:
+    """Datos de la página de scouting de un equipo de la liga."""
+    players, shots = tables["players"], tables["shots"]
+    team_shots = shots[shots["team"] == team_name]
+    row = league.loc[team_name]
+    factors = pd.DataFrame(
+        {
+            display_name(team_name): [
+                row["RITMO"], row["ORtg"], row["eFG%"], row["PER%"], row["RO%"], row["TL/TC"],
+            ],
+            "Media de la liga": [
+                average["RITMO"], average["ORtg"], average["eFG%"], average["PER%"],
+                average["RO%"], average["TL/TC"],
+            ],
+            "Permite a sus rivales": [
+                row["RITMO"], row["DRtg"], row["eFG% rival"], row["PER% rival"],
+                row["RO% rival"], row["TL/TC rival"],
+            ],
+        },
+        index=FACTOR_ROWS,
+    )  # fmt: skip
+    season = (
+        player_season(players, team_name)
+        .join(player_usage(players, tables["teams"], team_name))
+        .join(player_profiles(players, shots, team_name).drop(columns="TCA"))
+    )
+    numbers = players[players["team"] == team_name].groupby("player")["number"].last().to_dict()
+    player_charts = []
+    for player, info in season.sort_values("TCA", ascending=False).head(TOP_SHOOTERS).iterrows():
+        player_shots = team_shots[team_shots["player"] == player]
+        if player_shots.empty:
+            continue
+        made = int(player_shots["made"].sum())
+        profile = info["Perfil"].lower()
+        player_charts.append(
+            {
+                "name": display_name(player),
+                "number": numbers.get(player, ""),
+                "summary": f"{made}/{len(player_shots)} tiros de campo · perfil {profile}",
+                "chart": charts.to_html(charts.shot_chart(player_shots, height=420)),
+                "zones": table(zone_summary(player_shots), "Zona"),
+            }
+        )
+    season = season[SCOUTING_COLUMNS]
+    season.index = [display_name(p) for p in season.index]
+    results = []
+    for match, _, _ in all_matches:
+        if not involves(match, team_name):
+            continue
+        home = match["local"] == team_name
+        own = match["local_score"] if home else match["visitor_score"]
+        other = match["visitor_score"] if home else match["local_score"]
+        results.append(
+            {
+                "round": match["round"],
+                "rival": display_name(match["visitor"] if home else match["local"]),
+                "where": "Casa" if home else "Fuera",
+                "score": f"{own}-{other}",
+                "won": own > other,
+                "link": f"../partidos/{match['id']}.html" if involves(match, own_team) else None,
+            }
+        )
+    return {
+        "name": display_name(team_name),
+        "is_own": team_name == own_team,
+        "record": f"{int(row['V'])}-{int(row['D'])}",
+        "ranks": ranks(league, team_name),
+        "n_teams": len(league),
+        "factors": table(factors.round(1)),
+        "players": table(season, "Jugador"),
+        "shots": charts.to_html(charts.shot_chart(team_shots)),
+        "zones": table(zone_summary(team_shots), "Zona"),
+        "player_charts": player_charts,
+        "lineups": lineup_table(lineup_summary(stints), numbers),
+        "legend": legend(numbers),
+        "results": results,
     }
 
 
@@ -235,39 +359,63 @@ def build_site(
     raw_dir: Path = RAW_DIR, out_dir: Path = SITE_DIR, team_name: str = TEAM_NAME
 ) -> list[Path]:
     """Genera la web y devuelve las páginas creadas."""
-    matches = list(iter_matches(raw_dir))
+    all_matches = list(iter_matches(raw_dir))
+    own_matches = [m for m in all_matches if involves(m[0], team_name)]
+    upcoming_file = raw_dir / "upcoming.json"
+    upcoming = (
+        json.loads(upcoming_file.read_text(encoding="utf-8")) if upcoming_file.exists() else []
+    )
     tables = build_tables(raw_dir)
     tables["shots"] = add_zones(tables["shots"])
-    stints = pd.DataFrame([row for match in matches for row in stint_rows(*match, team_name)])
+    league = league_table(tables["teams"])
+    average = league_average(tables["teams"])
+    stints = {
+        team: pd.DataFrame(
+            [row for m in all_matches if involves(m[0], team) for row in stint_rows(*m, team)]
+        )
+        for team in league.index
+    }
 
     env = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape())
     common = {
         "team_name": display_name(team_name),
+        "own_slug": slug(team_name),
         "plotly_url": f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js",
         "generated": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "n_games": len(matches),
+        "n_games": len(own_matches),
+        "n_league_games": len(all_matches),
     }
     if out_dir.exists():
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
+    (out_dir / "equipos").mkdir()
     shutil.copy(HERE / "static" / "style.css", out_dir / "style.css")
 
-    pages = [out_dir / "index.html"]
-    pages[0].write_text(
-        env.get_template("season.html.j2").render(
-            **common, root="", **season_page(matches, tables, stints, team_name)
-        ),
-        encoding="utf-8",
+    pages: list[Path] = []
+
+    def render(path: Path, template: str, root: str, **context) -> None:
+        html = env.get_template(template).render(**common, root=root, **context)
+        path.write_text(html, encoding="utf-8")
+        pages.append(path)
+
+    render(
+        out_dir / "index.html",
+        "season.html.j2",
+        "",
+        **season_page(own_matches, tables, stints[team_name], team_name, upcoming),
     )
-    for match, stats, moves in matches:
-        page = out_dir / "partidos" / f"{match['id']}.html"
-        page.write_text(
-            env.get_template("match.html.j2").render(
-                **common,
-                root="../",
-                **match_page(match, stats, moves, tables, stints, team_name),
-            ),
-            encoding="utf-8",
+    for match, stats, moves in own_matches:
+        render(
+            out_dir / "partidos" / f"{match['id']}.html",
+            "match.html.j2",
+            "../",
+            **match_page(match, stats, moves, tables, stints[team_name], team_name),
         )
-        pages.append(page)
+    for team in league.index:
+        render(
+            out_dir / "equipos" / f"{slug(team)}.html",
+            "team.html.j2",
+            "../",
+            **team_page(team, all_matches, tables, stints[team], league, average, team_name),
+        )
     return pages

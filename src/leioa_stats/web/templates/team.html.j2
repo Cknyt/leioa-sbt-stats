@@ -1,0 +1,84 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ name }}{% endblock %}
+{% block content %}
+<p class="back"><a href="{{ root }}index.html">← Temporada</a> · <a href="{{ root }}index.html#liga">Liga</a></p>
+<section class="hero">
+  <p class="meta">{{ 'Nuestro equipo' if is_own else 'Scouting' }} · {{ results | length }} partidos</p>
+  <h1>{{ name }}</h1>
+  <p class="record">Balance <strong>{{ record }}</strong></p>
+  <div class="ranks">
+    <span>Ritmo <b>{{ ranks.RITMO }}º</b></span>
+    <span>Ataque <b>{{ ranks.ORtg }}º</b></span>
+    <span>Defensa <b>{{ ranks.DRtg }}º</b></span>
+    <span>Neto <b>{{ ranks.NETO }}º</b></span>
+    <span>Tiro (eFG%) <b>{{ ranks['eFG%'] }}º</b></span>
+    <span>Pérdidas <b>{{ ranks['PER%'] }}º</b></span>
+    <span>Rebote of. <b>{{ ranks['RO%'] }}º</b></span>
+    <span>Tiros libres <b>{{ ranks['TL/TC'] }}º</b></span>
+  </div>
+  <p class="hint">Puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor; en ritmo, el más rápido).</p>
+  {% if results | length < 6 %}
+  <p class="note">Con {{ results | length }} partidos la muestra es pequeña: sirve para orientarse, no para sacar conclusiones firmes.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Resultados</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>J</th><th>Rival</th><th></th><th>Resultado</th></tr></thead>
+      <tbody>
+      {% for r in results %}
+        <tr>
+          <td>{{ r.round }}</td>
+          <td class="left">{% if r.link %}<a href="{{ r.link }}">{{ r.rival }}</a>{% else %}{{ r.rival }}{% endif %}</td>
+          <td class="left">{{ r.where }}</td>
+          <td><span class="badge {{ 'win' if r.won else 'loss' }}">{{ 'V' if r.won else 'D' }}</span> {{ r.score }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Dónde es fuerte</h2>
+  <p class="hint">Su ataque, la media de la liga y lo que permite su defensa a los rivales.</p>
+  <div class="table-wrap">{{ factors | safe }}</div>
+</section>
+
+<section>
+  <h2>Jugadores</h2>
+  <p class="hint">"Perfil" es una estimación a partir de dónde tira cada jugador y de cuántos rebotes ofensivos coge (la federación no publica posiciones).</p>
+  <div class="table-wrap">{{ players | safe }}</div>
+</section>
+
+<section>
+  <h2>Mapa de tiros del equipo</h2>
+  <div class="chart">{{ shots | safe }}</div>
+  <div class="table-wrap">{{ zones | safe }}</div>
+</section>
+
+<section>
+  <h2>Mapa de tiros por jugador</h2>
+  <p class="hint">Los {{ player_charts | length }} jugadores que más tiran.</p>
+  <div class="player-grid">
+  {% for p in player_charts %}
+    <div class="player-card">
+      <h3>{{ p.number }} · {{ p.name }}</h3>
+      <p class="meta">{{ p.summary }}</p>
+      <div class="chart">{{ p.chart | safe }}</div>
+      <div class="table-wrap">{{ p.zones | safe }}</div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2>Quintetos más usados</h2>
+  <div class="table-wrap">{{ lineups | safe }}</div>
+  <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
+</section>
+
+{% include "glossary.html.j2" %}
+{% endblock %}
