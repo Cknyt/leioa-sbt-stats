@@ -38,7 +38,8 @@ Comandos habituales:
 - `src/leioa_stats/`: el código. `download.py` (descarga con caché), `parse.py` (JSON a tablas), `validate.py` (contraste del jugada a jugada con el box score) y `metrics/` (`basic.py`, `advanced.py`, `lineups.py`, `shots.py`).
 - `data/raw/` y `data/processed/`: datos descargados y procesados. No se versionan.
 - `notebooks/`: exploración con Jupyter.
-- `site/`: web generada. No se versiona.
+- `src/leioa_stats/web/`: generación de la web (`build.py`, `charts.py`, `templates/` con Jinja2 y `static/style.css`). Se genera con `uv run python -m leioa_stats.web`.
+- `site/`: web generada. No se versiona. Para revisarla en el navegador, usa la configuración `web` de `.claude/launch.json` (servidor en el puerto 8000).
 - `tests/`: tests. `tests/fixtures/` guarda el partido de ejemplo 99138.
 
 Crea cada archivo o carpeta cuando haga falta, no antes.
