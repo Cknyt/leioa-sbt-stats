@@ -91,14 +91,15 @@ def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     rows = []
     for team in stats["teams"]:
         context = match_context(match, stats, team["name"])
-        for period in team["periods"]:
+        for number, period in enumerate(team["periods"], start=1):
             for key, (value, made) in SHOT_KEYS.items():
                 for point in period.get(key, []):
                     rows.append(
                         {
                             **context,
                             "player": players.get(point["eventUuid"]),
-                            "period": point["period"],
+                            # A veces falta el cuarto en el tiro: se toma de la lista.
+                            "period": point.get("period", number),
                             "value": value,
                             "made": made,
                             "x": point["xnormalize"],

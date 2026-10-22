@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 
 from leioa_stats.metrics.lineups import elapsed_seconds
 from leioa_stats.metrics.shots import BASKET_X, COURT_LENGTH, COURT_WIDTH
+from leioa_stats.validate import POINTS
 
 MADE_COLOR = "#1a9850"
 MISSED_COLOR = "#d73027"
@@ -79,7 +80,7 @@ def court_shapes() -> list[dict]:
     ]
 
 
-def shot_chart(shots: pd.DataFrame, title: str = "") -> go.Figure:
+def shot_chart(shots: pd.DataFrame, title: str = "", height: int = 520) -> go.Figure:
     """Mapa de tiros. Necesita las columnas de parse.shot_rows y la distancia de add_zones."""
     fig = go.Figure()
     for made, name, color, symbol in (
@@ -116,7 +117,7 @@ def shot_chart(shots: pd.DataFrame, title: str = "") -> go.Figure:
         margin={"l": 5, "r": 5, "t": 40 if title else 5, "b": 5},
         plot_bgcolor="#fbf7ef",
         paper_bgcolor="rgba(0,0,0,0)",
-        height=520,
+        height=height,
     )
     return fig
 
@@ -128,7 +129,7 @@ def score_timeline(stats: dict, moves: list[dict], team_name: str) -> go.Figure:
     durations = stats["periodDurationList"]
     times, diffs, labels = [0.0], [0], ["0-0"]
     for move in moves:
-        if move["idMove"] not in (92, 93, 94):
+        if move["idMove"] not in POINTS:
             continue
         local, visitor = (int(v) for v in move["score"].split("-"))
         times.append(elapsed_seconds(move, durations) / 60)

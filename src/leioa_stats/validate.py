@@ -22,15 +22,20 @@ FT_MISSED, TWO_MISSED, THREE_MISSED = 96, 97, 98
 OFF_REBOUND, BLOCK, STEAL, DEF_REBOUND = 101, 102, 103, 104
 BLOCK_RECEIVED, TURNOVER, ASSIST, FOUL_RECEIVED = 105, 106, 107, 110
 SUB_IN, TIMEOUT, SUB_OUT, PERIOD_END = 112, 113, 115, 116
+# Un mate es una canasta de 2 con su propio código.
+DUNK = 100
+# Jugada -> puntos que suma.
+POINTS = {FT_MADE: 1, TWO_MADE: 2, DUNK: 2, THREE_MADE: 3}
 
 NON_FOUL_MOVES = {
-    FT_MADE, TWO_MADE, THREE_MADE, FT_MISSED, TWO_MISSED, THREE_MISSED,
+    FT_MADE, TWO_MADE, DUNK, THREE_MADE, FT_MISSED, TWO_MISSED, THREE_MISSED,
     OFF_REBOUND, BLOCK, STEAL, DEF_REBOUND, BLOCK_RECEIVED, TURNOVER, ASSIST,
     FOUL_RECEIVED, SUB_IN, TIMEOUT, SUB_OUT, PERIOD_END,
 }  # fmt: skip
-# Faltas vistas hasta ahora: en ataque, personal (sin tiros, 1 o 2 tiros libres),
-# antideportiva, técnica, técnica al entrenador y 571 (sin nombre en la web).
-KNOWN_FOUL_MOVES = {109, 159, 160, 161, 166, 537, 540, 571}
+# Faltas vistas hasta ahora: en ataque (109), personal sin tiros, con 1, 2 o 3 tiros libres
+# (159-162), antideportiva (166), técnica compensada (173), descalificante (200), técnica (537),
+# técnica al entrenador (540), técnica al banquillo (544) y dos sin nombre en la web (565, 571).
+KNOWN_FOUL_MOVES = {109, 159, 160, 161, 162, 166, 173, 200, 537, 540, 544, 565, 571}
 
 SHOT_POINT_KEYS = [
     "shootingOfTwoSuccessfulPoint",
@@ -57,7 +62,7 @@ BOX_FIELDS = {
     "FP": ("faults", "faltas personales"),
 }
 # Estadísticas que se pueden anotar "de equipo", sin jugador.
-TEAM_STATS = {"RO", "RD", "PER"}
+TEAM_STATS = {"RO", "RD", "PER", "REC"}
 
 
 @dataclass
@@ -82,12 +87,13 @@ def pbp_player_totals(moves: list[dict], team_id: int) -> dict[str, int]:
     """Totales del equipo según el jugada a jugada, contando solo acciones de jugadores."""
     player_moves = [m for m in moves if m["idTeam"] == team_id and not m["teamAction"]]
     c = Counter(m["idMove"] for m in player_moves)
+    two_made = c[TWO_MADE] + c[DUNK]
     return {
-        "PTS": c[FT_MADE] + 2 * c[TWO_MADE] + 3 * c[THREE_MADE],
+        "PTS": sum(points * c[move] for move, points in POINTS.items()),
         "T1M": c[FT_MADE],
         "T1A": c[FT_MADE] + c[FT_MISSED],
-        "T2M": c[TWO_MADE],
-        "T2A": c[TWO_MADE] + c[TWO_MISSED],
+        "T2M": two_made,
+        "T2A": two_made + c[TWO_MISSED],
         "T3M": c[THREE_MADE],
         "T3A": c[THREE_MADE] + c[THREE_MISSED],
         "RO": c[OFF_REBOUND],
@@ -196,16 +202,15 @@ def check_blocks(stats: dict, moves: list[dict]) -> list[Issue]:
 
 def check_score(stats: dict, moves: list[dict]) -> list[Issue]:
     """El marcador de cada canasta y el final deben coincidir con lo acumulado."""
-    points = {FT_MADE: 1, TWO_MADE: 2, THREE_MADE: 3}
     local, visitor = 0, 0
     mismatches = []
     for m in moves:
-        if m["idMove"] not in points:
+        if m["idMove"] not in POINTS:
             continue
         if m["idTeam"] == stats["localId"]:
-            local += points[m["idMove"]]
+            local += POINTS[m["idMove"]]
         else:
-            visitor += points[m["idMove"]]
+            visitor += POINTS[m["idMove"]]
         if m["score"] != f"{local}-{visitor}":
             mismatches.append((m, f"{local}-{visitor}"))
     issues = []

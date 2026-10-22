@@ -26,7 +26,8 @@ Partido de ejemplo: [Leioa SBT 76-70 Easo Basket](https://basketbasko.com/es/mat
 
 - Los datos se anotan a mano en la mesa de anotación, así que puede haber errores.
 - Se creía que los tapones no se registraban, pero en el primer partido revisado (99138) sí aparecen. Queda pendiente confirmarlo con más partidos.
-- Parte de los rebotes y pérdidas se anotan "de equipo", sin jugador: el total del equipo es mayor que la suma de sus jugadores.
+- Parte de los rebotes, pérdidas y recuperaciones se anotan "de equipo", sin jugador: el total del equipo es mayor que la suma de sus jugadores.
+- En los 14 partidos de las dos primeras jornadas de la liga no hay errores en los datos, solo 12 avisos de anotación (cambios sin anotar, faltas técnicas que no aparecen en el jugada a jugada).
 - La muestra es pequeña (26 jornadas por temporada), por lo que muchas métricas tendrán mucha variabilidad.
 
 ## Puesta en marcha
@@ -45,7 +46,7 @@ uv run python -m pytest
 
 ## Descargar los partidos
 
-Descarga las estadísticas y el jugada a jugada de todos los partidos ya jugados del Leioa SBT en `data/raw/`. Los partidos que ya están descargados no se vuelven a pedir, así que basta con ejecutarlo después de cada jornada:
+Descarga las estadísticas y el jugada a jugada de todos los partidos ya jugados **de la liga** (para el scouting de rivales) en `data/raw/`, y los próximos partidos del Leioa SBT en `data/raw/upcoming.json`. Los partidos que ya están descargados no se vuelven a pedir, así que basta con ejecutarlo después de cada jornada:
 
 ```bash
 uv run python -m leioa_stats.download
@@ -80,7 +81,7 @@ uv run python -m leioa_stats.metrics
 
 ## Web
 
-Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada y una por partido, con tablas, mapa de tiros y evolución del marcador (gráficos interactivos con plotly):
+Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly):
 
 ```bash
 uv run python -m leioa_stats.web
@@ -96,4 +97,4 @@ Después abre <http://localhost:8000>. Es una web estática: se puede publicar e
 
 ## Estado
 
-Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. La web ya se genera en local. El siguiente paso es publicarla y automatizar la actualización tras cada jornada.
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. La web ya se genera en local, con scouting de los 14 equipos. El siguiente paso es publicarla y automatizar la actualización tras cada jornada.
