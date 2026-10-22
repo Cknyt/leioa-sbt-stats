@@ -49,6 +49,9 @@ Crea cada archivo o carpeta cuando haga falta, no antes.
 ## Datos
 
 - Fuente: datos públicos de basketbasko.com (Federación Vasca), servidos en JSON por los servicios de Optimal Way Consulting.
+- Cómo se obtienen (detalle en `src/leioa_stats/download.py`):
+  - La lista de partidos de cada jornada sale de `esb.../FCBQWeb/resultats/<grupo>/<jornada>`. La respuesta va en base64 y necesita una clave que viene en el HTML de la página del grupo.
+  - Las estadísticas y el jugada a jugada de un partido salen de `msstats.../getJsonWithMatchStats|Moves/<universallyid>` y no necesitan clave.
 - Respeta el servidor: guarda en local lo que ya se ha descargado, no repitas descargas innecesarias y deja una pausa entre peticiones.
 - No subas al repositorio claves, tokens ni configuración personal; van en `.env`, que está ignorado.
 
@@ -57,6 +60,7 @@ Crea cada archivo o carpeta cuando haga falta, no antes.
 Cada métrica que se presente al entrenador debe ir acompañada de su grado de fiabilidad:
 
 - Los datos se anotan a mano en la mesa, así que puede haber errores. Hay que contrastar los totales del jugada a jugada con el box score.
-- Los tapones no parecen registrarse. Cualquier métrica que dependa de ellos queda incompleta.
+- Los tapones sí aparecen en el partido 99138, aunque al principio se creyó que no se registraban. Hay que confirmarlo con más partidos antes de usarlos.
+- Parte de los rebotes y pérdidas son "de equipo" (sin jugador): el total del equipo es mayor que la suma de los jugadores. Para calcular posesiones se usan los totales del equipo.
 - La muestra es pequeña (26 jornadas): indica el tamaño de muestra y evita sacar conclusiones con pocos minutos o pocos intentos.
 - Si una métrica es una estimación (por ejemplo, las posesiones), explica la fórmula usada.
