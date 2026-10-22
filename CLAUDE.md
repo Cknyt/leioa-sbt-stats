@@ -28,7 +28,7 @@ Comandos habituales:
 
 - `uv sync`: crea o actualiza el entorno.
 - `uv add <paquete>`: añade una dependencia (`--dev` si solo se usa para desarrollar).
-- `uv run python -m pytest`: ejecuta los tests. En este equipo el antivirus (Bitdefender) bloquea los lanzadores `.exe` que crea uv en `.venv/Scripts` ("Acceso denegado"), así que las herramientas de Python se ejecutan siempre con `python -m <herramienta>`.
+- `uv run python -m pytest`: ejecuta los tests. GitHub Actions los ejecuta también en cada PR, junto con ruff (`.github/workflows/ci.yml`). En este equipo el antivirus (Bitdefender) bloquea los lanzadores `.exe` que crea uv en `.venv/Scripts` ("Acceso denegado"), así que las herramientas de Python se ejecutan siempre con `python -m <herramienta>`.
 - `uv run ruff check .` y `uv run ruff format .`: revisan y formatean el código.
 
 ## Estructura
@@ -63,6 +63,7 @@ Cada métrica que se presente al entrenador debe ir acompañada de su grado de f
 - Los tapones sí aparecen en el partido 99138, aunque al principio se creyó que no se registraban. Hay que confirmarlo con más partidos antes de usarlos.
 - Parte de los rebotes y pérdidas son "de equipo" (sin jugador): el total del equipo es mayor que la suma de los jugadores. Para calcular posesiones se usan los totales del equipo.
 - Las faltas técnicas al entrenador cuentan para el equipo, no para ningún jugador. Hay códigos de jugada sin nombre en la web (por ejemplo, `571`, que es una falta). `validate.py` avisa si aparece un código desconocido.
+- Coordenadas de tiro: `xnormalize` e `ynormalize` van de 0 a 100 sobre una cancha de 28 × 15 m, siempre atacando hacia el aro de la izquierda (x = 5,625, y = 50). Están calibradas con la línea de triple (6,75 m). Ver `metrics/shots.py`.
 - Antes de calcular métricas de un partido, revisa sus incidencias con `uv run python -m leioa_stats.validate`. Los quintetos y el +/- dependen de que los cambios estén bien anotados.
 - La muestra es pequeña (26 jornadas): indica el tamaño de muestra y evita sacar conclusiones con pocos minutos o pocos intentos.
 - Si una métrica es una estimación (por ejemplo, las posesiones), explica la fórmula usada.
