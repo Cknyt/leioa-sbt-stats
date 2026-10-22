@@ -1,20 +1,14 @@
 <section class="glossary">
   <details>
     <summary>Glosario y fórmulas</summary>
+    <p class="hint">También puedes tocar el botón <span class="info-sample">?</span> que hay junto a cada término.</p>
     <dl>
-      <dt>TC, T2, T3, T1</dt><dd>Tiros de campo (de 2 + de 3), de 2, de 3 y libres. M = anotados, A = intentados.</dd>
-      <dt>eFG%</dt><dd>Acierto efectivo: (TCM + 0,5 × T3M) / TCA. Da a cada triple el valor extra que tiene.</dd>
-      <dt>TS%</dt><dd>Acierto real: PTS / (2 × (TCA + 0,44 × T1A)). Incluye los tiros libres.</dd>
-      <dt>RO, RD, RT</dt><dd>Rebotes ofensivos, defensivos y totales. Los del equipo incluyen los rebotes "de equipo" (sin jugador).</dd>
-      <dt>AS, PER, REC, TAP, FP, FR, VAL</dt><dd>Asistencias, pérdidas, recuperaciones, tapones, faltas cometidas, faltas recibidas y valoración.</dd>
-      <dt>/PJ, /40</dt><dd>Media por partido jugado y por 40 minutos en pista.</dd>
-      <dt>Posesiones (POSS)</dt><dd>Estimación: TCA + 0,44 × T1A − RO + PER. Las de un partido son la media de las de los dos equipos.</dd>
-      <dt>Ritmo</dt><dd>Posesiones por 40 minutos.</dd>
-      <dt>ORtg, DRtg, Neto</dt><dd>Puntos anotados y recibidos por 100 posesiones, y su diferencia.</dd>
-      <dt>Four Factors</dt><dd>eFG%; PER% = pérdidas por 100 posesiones; RO% = RO / (RO + RD del rival); TL/TC = tiros libres anotados por 100 tiros de campo.</dd>
-      <dt>USO%</dt><dd>Parte de las posesiones del equipo que termina el jugador (tiro, tiro libre o pérdida) mientras está en pista. La media es el 20 %.</dd>
-      <dt>On/off</dt><dd>Neto del equipo con el jugador en pista frente a con el jugador en el banquillo.</dd>
-      <dt>Zonas de tiro</dt><dd>Cerca del aro (menos de 3 m), media distancia (resto de tiros de 2), triple de esquina y triple frontal, calculadas con las coordenadas del mapa de tiros.</dd>
+    {% for terms, text in glossary %}
+      <dt>{{ terms | join(", ") }}</dt><dd>{{ text }}</dd>
+    {% endfor %}
+      <dt>/PJ, /40</dt><dd>Media por partido jugado y por cada 40 minutos en pista.</dd>
     </dl>
   </details>
 </section>
+<script type="application/json" id="glossary-data">{{ glossary_json | safe }}</script>
+<script src="{{ root }}glossary.js"></script>

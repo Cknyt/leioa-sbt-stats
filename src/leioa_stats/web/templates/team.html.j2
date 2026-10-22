@@ -7,20 +7,24 @@
   <h1>{{ name }}</h1>
   <p class="record">Balance <strong>{{ record }}</strong></p>
   <div class="ranks">
-    <span>Ritmo <b>{{ ranks.RITMO }}º</b></span>
-    <span>Ataque <b>{{ ranks.ORtg }}º</b></span>
-    <span>Defensa <b>{{ ranks.DRtg }}º</b></span>
-    <span>Neto <b>{{ ranks.NETO }}º</b></span>
-    <span>Tiro (eFG%) <b>{{ ranks['eFG%'] }}º</b></span>
-    <span>Pérdidas <b>{{ ranks['PER%'] }}º</b></span>
-    <span>Rebote of. <b>{{ ranks['RO%'] }}º</b></span>
-    <span>Tiros libres <b>{{ ranks['TL/TC'] }}º</b></span>
+    <span data-term="Ritmo">Ritmo <b>{{ ranks.RITMO }}º</b></span>
+    <span data-term="Ataque">Ataque <b>{{ ranks.ORtg }}º</b></span>
+    <span data-term="Defensa">Defensa <b>{{ ranks.DRtg }}º</b></span>
+    <span data-term="Neto">Neto <b>{{ ranks.NETO }}º</b></span>
+    <span data-term="Tiro (eFG%)">Tiro (eFG%) <b>{{ ranks['eFG%'] }}º</b></span>
+    <span data-term="Pérdidas">Pérdidas <b>{{ ranks['PER%'] }}º</b></span>
+    <span data-term="Rebote of.">Rebote of. <b>{{ ranks['RO%'] }}º</b></span>
+    <span data-term="Tiros libres">Tiros libres <b>{{ ranks['TL/TC'] }}º</b></span>
   </div>
   <p class="hint">Puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor; en ritmo, el más rápido).</p>
   {% if results | length < 6 %}
   <p class="note">Con {{ results | length }} partidos la muestra es pequeña: sirve para orientarse, no para sacar conclusiones firmes.</p>
   {% endif %}
 </section>
+
+{% with ideas_title = "Lo que pueden plantearnos los rivales" if is_own else "Ideas para el partido" %}
+{% include "insights.html.j2" %}
+{% endwith %}
 
 <section>
   <h2>Resultados</h2>

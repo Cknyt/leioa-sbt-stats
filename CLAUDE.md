@@ -39,6 +39,8 @@ Comandos habituales:
 - `data/raw/` y `data/processed/`: datos descargados y procesados. No se versionan.
 - `notebooks/`: exploración con Jupyter.
 - `src/leioa_stats/web/`: generación de la web (`build.py`, `charts.py`, `templates/` con Jinja2 y `static/style.css`). Se genera con `uv run python -m leioa_stats.web`.
+- `src/leioa_stats/web/glossary.py`: definición de cada término técnico. Es la única fuente del glosario y de los botones "?" (`static/glossary.js`). Una columna nueva en la web necesita su definición: `tests/test_insights.py` falla si falta.
+- `src/leioa_stats/metrics/insights.py`: conclusiones automáticas con reglas y umbrales explícitos. Cada frase debe decir de dónde sale (valor, puesto, media de la liga) y no debe destacar a jugadores con pocos minutos o pocos tiros.
 - `site/`: web generada. No se versiona. Para revisarla en el navegador, usa la configuración `web` de `.claude/launch.json` (servidor en el puerto 8000).
 - `tests/`: tests. `tests/fixtures/` guarda el partido de ejemplo 99138.
 

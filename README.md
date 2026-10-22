@@ -81,7 +81,11 @@ uv run python -m leioa_stats.metrics
 
 ## Web
 
-Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly):
+Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly).
+
+Cada término técnico lleva un botón **?** con su explicación (se toca en el móvil o se pasa el ratón en el ordenador), y cada página incluye **conclusiones automáticas**: estilo de juego, fortalezas, puntos débiles, jugadores clave, ideas para el partido y claves de cada partido. Las conclusiones salen de reglas fijas con umbrales explícitos (`metrics/insights.py`), no de un modelo de lenguaje, así que cada frase se puede comprobar con los números de la página.
+
+Para generarla:
 
 ```bash
 uv run python -m leioa_stats.web

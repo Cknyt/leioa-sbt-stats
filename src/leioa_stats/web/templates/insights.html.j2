@@ -1,0 +1,19 @@
+{# Conclusiones automáticas de un equipo. Variables: insights, ideas_title. #}
+<section class="insights">
+  <h2>Conclusiones</h2>
+  <p class="hint">Generadas automáticamente con reglas fijas a partir de los números de esta web (cada frase indica de dónde sale). Con pocos partidos, son orientativas.</p>
+  {% for title, items, kind in [
+      ("Estilo de juego", insights.style, "style"),
+      ("Fortalezas", insights.strengths, "good"),
+      ("Puntos débiles", insights.weaknesses, "bad"),
+      ("Jugadores", insights.players, "players"),
+      (ideas_title, insights.ideas, "ideas"),
+  ] %}
+    {% if items %}
+    <h3 class="insight-title {{ kind }}">{{ title }}</h3>
+    <ul class="insight-list {{ kind }}">
+      {% for item in items %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  {% endfor %}
+</section>
