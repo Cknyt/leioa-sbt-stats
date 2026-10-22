@@ -25,7 +25,8 @@ Partido de ejemplo: [Leioa SBT 76-70 Easo Basket](https://basketbasko.com/es/mat
 ## Limitaciones conocidas
 
 - Los datos se anotan a mano en la mesa de anotación, así que puede haber errores.
-- Los tapones no parecen registrarse.
+- Se creía que los tapones no se registraban, pero en el primer partido revisado (99138) sí aparecen. Queda pendiente confirmarlo con más partidos.
+- Parte de los rebotes y pérdidas se anotan "de equipo", sin jugador: el total del equipo es mayor que la suma de sus jugadores.
 - La muestra es pequeña (26 jornadas por temporada), por lo que muchas métricas tendrán mucha variabilidad.
 
 ## Puesta en marcha
@@ -42,10 +43,18 @@ Para comprobar que todo funciona:
 uv run python -m pytest
 ```
 
+## Descargar los partidos
+
+Descarga las estadísticas y el jugada a jugada de todos los partidos ya jugados del Leioa SBT en `data/raw/`. Los partidos que ya están descargados no se vuelven a pedir, así que basta con ejecutarlo después de cada jornada:
+
+```bash
+uv run python -m leioa_stats.download
+```
+
 ## Resultado
 
 El proyecto genera una web estática (carpeta `site/`) con un informe por partido, uno de temporada y uno por jugador, pensada para verse en el móvil y en el ordenador.
 
 ## Estado
 
-Proyecto en fase inicial: estructura y entorno configurados. El siguiente paso es descargar un partido y comprobar si el jugada a jugada cuadra con el box score.
+Proyecto en fase inicial: la descarga de partidos ya funciona. El siguiente paso es comprobar automáticamente si el jugada a jugada de cada partido cuadra con el box score.
