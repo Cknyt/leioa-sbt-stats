@@ -1,0 +1,78 @@
+# Descarga los partidos, genera la web y la sube al hosting por FTP.
+# Se ejecuta cada lunes por la mañana, cuando llega a main un cambio de código y a mano
+# (pestaña Actions > Publicar web > Run workflow).
+#
+# Configuración (Settings > Secrets and variables > Actions):
+# - Secretos: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
+# - Variables: FTP_SERVER_DIR (carpeta del hosting, terminada en "/", por ejemplo
+#   /public_html/leioa/) y, si hace falta, FTP_PROTOCOL (ftps por defecto; también ftp).
+# Sin los secretos, genera la web igualmente (descargable como artefacto) pero no la sube.
+name: Publicar web
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # lunes a las 06:00 UTC (08:00 en verano, 07:00 en invierno)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["src/**", "pyproject.toml", "uv.lock", ".github/workflows/publish.yml"]
+
+# Nunca dos publicaciones a la vez.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      HAS_FTP: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' && vars.FTP_SERVER_DIR != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Instalar dependencias
+        run: uv sync --locked
+
+      # Los partidos ya descargados se guardan entre ejecuciones: solo se piden los nuevos.
+      - name: Recuperar partidos descargados
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: raw-${{ github.run_id }}
+          restore-keys: raw-
+
+      - name: Descargar partidos
+        run: uv run python -m leioa_stats.download
+
+      - name: Validar datos
+        run: uv run python -m leioa_stats.validate | tail -n 1
+
+      - name: Generar la web
+        run: uv run python -m leioa_stats.web
+
+      - name: Guardar la web como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: site/
+          retention-days: 14
+
+      - name: Subir al hosting
+        if: env.HAS_FTP == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: ./site/
+          server-dir: ${{ vars.FTP_SERVER_DIR }}
+
+      - name: Aviso si falta la configuración del hosting
+        if: env.HAS_FTP != 'true'
+        run: >
+          echo "::warning::No se ha subido la web: faltan los secretos FTP_SERVER, FTP_USERNAME o
+          FTP_PASSWORD, o la variable FTP_SERVER_DIR. La web generada está en los artefactos."

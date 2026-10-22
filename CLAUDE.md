@@ -24,7 +24,8 @@ Instrucciones para Claude Code en este repositorio. El contexto del proyecto est
 - Librerías: httpx (descarga), pandas (tablas y cálculos), plotly (gráficos interactivos), Jinja2 (plantillas HTML).
 - Calidad: pytest para los tests y ruff para el formato y el lint.
 - Los nombres de archivos, funciones y variables van en inglés. Los comentarios, la documentación y los commits van en español.
-- El resultado final es una web estática en `site/`, adaptada a móvil y ordenador. Todavía no se ha decidido si se publica en GitHub Pages o en el hosting del usuario.
+- El resultado final es una web estática en `site/`, adaptada a móvil y ordenador. Se publica en una subcarpeta del hosting del usuario por FTPS, con `.github/workflows/publish.yml` (cada lunes, al llegar código a `main` y a mano). No se indexa en buscadores.
+- Las credenciales FTP son secretos de GitHub que crea el usuario. Claude nunca las pide, las escribe ni las guarda.
 
 Comandos habituales:
 
