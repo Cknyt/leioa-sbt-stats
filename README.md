@@ -76,6 +76,7 @@ uv run python -m leioa_stats.metrics
   - Eficiencia ofensiva y defensiva = puntos anotados y recibidos por 100 posesiones.
   - Four Factors = eFG%, PER%, RO% y TL/TC, del equipo y de sus rivales.
   - % de uso de cada jugador.
+- **Quintetos y +/-** (reconstruidos con el jugada a jugada; detalle en `metrics/lineups.py`): minutos, +/- y eficiencia de cada quinteto, y +/- y on/off de cada jugador (diferencia por 100 posesiones con él en pista y en el banquillo). El +/- coincide con el que calcula la federación.
 
 ## Resultado
 
@@ -83,4 +84,4 @@ El proyecto genera una web estática (carpeta `site/`) con un informe por partid
 
 ## Estado
 
-Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro y avanzadas. El siguiente paso son los quintetos y el +/- a partir del jugada a jugada.
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. El siguiente paso es generar la web con los informes.
