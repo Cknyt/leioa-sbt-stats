@@ -28,6 +28,24 @@ Partido de ejemplo: [Leioa SBT 76-70 Easo Basket](https://basketbasko.com/es/mat
 - Los tapones no parecen registrarse.
 - La muestra es pequeña (26 jornadas por temporada), por lo que muchas métricas tendrán mucha variabilidad.
 
+## Puesta en marcha
+
+Hace falta tener instalado [uv](https://docs.astral.sh/uv/). Para crear el entorno con todas las dependencias:
+
+```bash
+uv sync
+```
+
+Para comprobar que todo funciona:
+
+```bash
+uv run python -m pytest
+```
+
+## Resultado
+
+El proyecto genera una web estática (carpeta `site/`) con un informe por partido, uno de temporada y uno por jugador, pensada para verse en el móvil y en el ordenador.
+
 ## Estado
 
-Proyecto en fase inicial: definiendo tecnología y estructura.
+Proyecto en fase inicial: estructura y entorno configurados. El siguiente paso es descargar un partido y comprobar si el jugada a jugada cuadra con el box score.
