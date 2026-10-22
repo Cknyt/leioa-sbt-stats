@@ -17,6 +17,12 @@ venv/
 .ipynb_checkpoints/
 *.egg-info/
 
+# Datos descargados y procesados (se regeneran con el script de descarga)
+data/
+
+# Web generada (se publica desde ahí, no se versiona)
+site/
+
 # Secretos y configuración local
 .env
 .env.*
