@@ -51,10 +51,18 @@ Descarga las estadísticas y el jugada a jugada de todos los partidos ya jugados
 uv run python -m leioa_stats.download
 ```
 
+## Validar los datos
+
+Comprueba, partido a partido, si el jugada a jugada cuadra con el box score: marcador, totales de cada estadística, tapones, minutos, mapa de tiros y quintetos en pista. Cada incidencia se clasifica como **error** (los datos se contradicen), **aviso** (probable error de anotación en la mesa) o **info** (diferencia esperada, como los rebotes de equipo):
+
+```bash
+uv run python -m leioa_stats.validate
+```
+
 ## Resultado
 
 El proyecto genera una web estática (carpeta `site/`) con un informe por partido, uno de temporada y uno por jugador, pensada para verse en el móvil y en el ordenador.
 
 ## Estado
 
-Proyecto en fase inicial: la descarga de partidos ya funciona. El siguiente paso es comprobar automáticamente si el jugada a jugada de cada partido cuadra con el box score.
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). El siguiente paso es calcular las primeras métricas.
