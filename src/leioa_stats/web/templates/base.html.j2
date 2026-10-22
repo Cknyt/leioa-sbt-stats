@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ team_name }}{% endblock %} · Estadísticas</title>
+  <link rel="stylesheet" href="{{ root }}style.css">
+  <script src="{{ plotly_url }}" charset="utf-8"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="{{ root }}index.html">{{ team_name }}</a>
+    <span class="subtitle">1ª División Masculina · Temporada 2026-27</span>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>Datos públicos de <a href="https://basketbasko.com/es/group/?id=2876">basketbasko.com</a> (Federación Vasca de Baloncesto), anotados a mano en la mesa del partido. {{ n_games }} partidos. Generado el {{ generated }}.</p>
+  </footer>
+</body>
+</html>

@@ -78,10 +78,22 @@ uv run python -m leioa_stats.metrics
   - % de uso de cada jugador.
 - **Quintetos y +/-** (reconstruidos con el jugada a jugada; detalle en `metrics/lineups.py`): minutos, +/- y eficiencia de cada quinteto, y +/- y on/off de cada jugador (diferencia por 100 posesiones con él en pista y en el banquillo). El +/- coincide con el que calcula la federación.
 
-## Resultado
+## Web
 
-El proyecto genera una web estática (carpeta `site/`) con un informe por partido, uno de temporada y uno por jugador, pensada para verse en el móvil y en el ordenador.
+Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada y una por partido, con tablas, mapa de tiros y evolución del marcador (gráficos interactivos con plotly):
+
+```bash
+uv run python -m leioa_stats.web
+```
+
+Para verla en local, sírvela con:
+
+```bash
+uv run python -m http.server 8000 --directory site
+```
+
+Después abre <http://localhost:8000>. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
 
 ## Estado
 
-Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. El siguiente paso es generar la web con los informes.
+Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. La web ya se genera en local. El siguiente paso es publicarla y automatizar la actualización tras cada jornada.

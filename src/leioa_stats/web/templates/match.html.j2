@@ -1,0 +1,59 @@
+{% extends "base.html.j2" %}
+{% block title %}J{{ match.round }} · {{ title }}{% endblock %}
+{% block content %}
+<p class="back"><a href="{{ root }}index.html">← Temporada</a></p>
+<section class="hero">
+  <p class="meta">Jornada {{ match.round }} · {{ date }}</p>
+  <h1>{{ title }}</h1>
+  <div class="table-wrap">{{ quarters | safe }}</div>
+  <p class="meta">{{ possessions }} posesiones · ritmo {{ pace }} por 40 minutos</p>
+</section>
+
+{% if issues %}
+<section class="issues">
+  <h2>Fiabilidad de los datos</h2>
+  <p class="hint">Posibles errores de anotación en la mesa detectados al cruzar el jugada a jugada con el acta:</p>
+  <ul>
+  {% for i in issues %}<li><b>{{ i.check }}</b>{% if i.team %} ({{ i.team | title }}){% endif %}: {{ i.detail }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Evolución del marcador</h2>
+  <p class="hint">Por encima de 0 gana {{ team_name }}; por debajo, {{ rival }}. Las líneas de puntos separan los cuartos.</p>
+  <div class="chart">{{ timeline | safe }}</div>
+</section>
+
+<section>
+  <h2>Eficiencia y Four Factors</h2>
+  <div class="table-wrap">{{ factors | safe }}</div>
+</section>
+
+<section>
+  <h2>{{ team_name }}</h2>
+  <div class="table-wrap">{{ box | safe }}</div>
+  <p class="hint">MIN según el acta. +/- según el jugada a jugada.</p>
+</section>
+
+<section>
+  <h2>Mapa de tiros · {{ team_name }}</h2>
+  <div class="chart">{{ shots | safe }}</div>
+  <div class="table-wrap">{{ zones | safe }}</div>
+</section>
+
+<section>
+  <h2>Quintetos</h2>
+  <div class="table-wrap">{{ lineups | safe }}</div>
+  <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
+</section>
+
+<section>
+  <h2>{{ rival }}</h2>
+  <div class="table-wrap">{{ box_rival | safe }}</div>
+  <h3>Mapa de tiros · {{ rival }}</h3>
+  <div class="chart">{{ shots_rival | safe }}</div>
+</section>
+
+{% include "glossary.html.j2" %}
+{% endblock %}

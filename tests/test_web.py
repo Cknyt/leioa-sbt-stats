@@ -1,0 +1,124 @@
+import json
+import shutil
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
+from leioa_stats.web import build, charts
+
+FIXTURES = Path(__file__).parent / "fixtures"
+MATCH_99138 = {
+    "id": "99138",
+    "uid": "6aca8d4dd75749bb61a6e292",
+    "round": 1,
+    "datetime": "2026-10-10 19:15:00",
+    "local": "LEIOA SBT",
+    "visitor": "EASO BASKET",
+    "local_score": 76,
+    "visitor_score": 70,
+}
+
+
+@pytest.fixture
+def site(tmp_path):
+    """Genera la web con el partido 99138 como única jornada."""
+    raw = tmp_path / "raw"
+    shutil.copytree(FIXTURES / "99138", raw / "matches" / "99138")
+    (raw / "matches.json").write_text(json.dumps([MATCH_99138]), encoding="utf-8")
+    out = tmp_path / "site"
+    pages = build.build_site(raw, out, "LEIOA SBT")
+    return out, pages
+
+
+def test_build_site_creates_pages(site):
+    out, pages = site
+    assert pages == [out / "index.html", out / "partidos" / "99138.html"]
+    assert (out / "style.css").exists()
+
+
+def test_season_page(site):
+    out, _ = site
+    html = (out / "index.html").read_text(encoding="utf-8")
+    assert "1</strong> victorias" in html
+    assert 'href="partidos/99138.html"' in html
+    assert "Leioa SBT 76-70 Easo Basket" in html
+    assert "Iñigo Carneros Villar" in html
+    assert html.count('class="plotly-graph-div"') == 1
+
+
+def test_match_page(site):
+    out, _ = site
+    html = (out / "partidos" / "99138.html").read_text(encoding="utf-8")
+    assert "Jornada 1 · 10/10/2026 19:15" in html
+    assert "85,6 posesiones" in html
+    # Marcador, mapa de tiros del Leioa y mapa de tiros del rival.
+    assert html.count('class="plotly-graph-div"') == 3
+    # Aviso de validación: el cambio no anotado del Easo.
+    assert "Julen Ugarte Aparicio".upper() in html
+
+
+def test_pages_have_no_missing_values(site):
+    _, pages = site
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        assert ">nan<" not in html.lower()
+        assert ">None<" not in html
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("IÑIGO CARNEROS VILLAR", "Iñigo Carneros Villar"),
+        ("LEIOA SBT", "Leioa SBT"),
+        ("CB SANTURTZI SK", "CB Santurtzi SK"),
+        ("NAVASKET 1DM", "Navasket 1DM"),
+    ],
+)
+def test_display_name(name, expected):
+    assert build.display_name(name) == expected
+
+
+@pytest.mark.parametrize(("value", "expected"), [(88.8, "88,8"), (85.0, "85"), (1.18, "1,18")])
+def test_number(value, expected):
+    assert build.number(value) == expected
+
+
+def test_shot_chart_splits_made_and_missed():
+    shots = pd.DataFrame(
+        [
+            {
+                "made": True,
+                "x": 6,
+                "y": 50,
+                "player": "A",
+                "value": 2,
+                "distance": 0.1,
+                "period": 1,
+            },
+            {
+                "made": False,
+                "x": 30,
+                "y": 50,
+                "player": "B",
+                "value": 3,
+                "distance": 6.8,
+                "period": 2,
+            },
+            {
+                "made": False,
+                "x": 80,
+                "y": 50,
+                "player": "C",
+                "value": 3,
+                "distance": 20,
+                "period": 2,
+            },
+        ]
+    )
+    fig = charts.shot_chart(shots)
+    made, missed = fig.data
+    assert len(made.x) == 1
+    assert len(missed.x) == 2
+    # Un lanzamiento desde campo propio se dibuja junto a la línea central.
+    assert max(missed.y) < charts.HALF_COURT

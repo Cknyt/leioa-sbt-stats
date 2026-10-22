@@ -1,0 +1,70 @@
+{% extends "base.html.j2" %}
+{% block title %}Temporada{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Temporada</h1>
+  <p class="record"><strong>{{ wins }}</strong> victorias · <strong>{{ losses }}</strong> derrotas</p>
+  {% if n_games < 8 %}
+  <p class="note">Solo hay {{ n_games }} partidos: las cifras describen lo que ha pasado, pero todavía no permiten sacar conclusiones (sobre todo las de quintetos y on/off).</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Partidos</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>J</th><th>Fecha</th><th>Partido</th><th>Ritmo</th><th>ORtg</th><th>DRtg</th><th>Neto</th><th>Datos</th></tr></thead>
+      <tbody>
+      {% for g in games %}
+        <tr>
+          <td>{{ g.match.round }}</td>
+          <td>{{ g.date }}</td>
+          <td class="left"><span class="badge {{ 'win' if g.won else 'loss' }}">{{ 'V' if g.won else 'D' }}</span> <a href="partidos/{{ g.match.id }}.html">{{ g.title }}</a></td>
+          <td>{{ g.pace }}</td><td>{{ g.ortg }}</td><td>{{ g.drtg }}</td><td>{{ g.net }}</td>
+          <td>{% if g.issues %}<span class="warn">{{ g.issues }} aviso{{ 's' if g.issues > 1 }}</span>{% else %}✓{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Equipo frente a sus rivales</h2>
+  <p class="hint">Medias por partido y porcentajes de tiro. "Rivales" es lo que han hecho los rivales contra {{ team_name }}.</p>
+  <div class="table-wrap">{{ team | safe }}</div>
+  <h3>Ritmo, eficiencia y Four Factors</h3>
+  <p class="hint">En la columna de rivales: lo que permite la defensa.</p>
+  <div class="table-wrap">{{ advanced | safe }}</div>
+</section>
+
+<section>
+  <h2>Jugadores</h2>
+  <div class="table-wrap">{{ players | safe }}</div>
+</section>
+
+<section>
+  <h2>Mapa de tiros</h2>
+  <div class="chart">{{ shots | safe }}</div>
+  <h3>Por zonas</h3>
+  <div class="table-wrap">{{ zones | safe }}</div>
+  <h3>Por zonas, rivales</h3>
+  <div class="table-wrap">{{ zones_rivals | safe }}</div>
+</section>
+
+<section>
+  <h2>+/- y on/off</h2>
+  <p class="hint">Neto = diferencia de puntos por 100 posesiones. "En banquillo" es el neto del equipo mientras el jugador no está en pista. Minutos según el reloj del jugada a jugada.</p>
+  <div class="table-wrap">{{ on_off | safe }}</div>
+</section>
+
+<section>
+  <h2>Quintetos</h2>
+  <p class="hint">Los 10 con más minutos, por dorsales.</p>
+  <div class="table-wrap">{{ lineups | safe }}</div>
+  {% if lineups_incomplete %}<p class="note">{{ lineups_incomplete }} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan.</p>{% endif %}
+  <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
+</section>
+
+{% include "glossary.html.j2" %}
+{% endblock %}
