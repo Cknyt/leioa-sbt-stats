@@ -42,7 +42,7 @@ SHOT_KEYS = {
 }
 
 
-def match_context(match: dict, team_name: str) -> dict:
+def match_context(match: dict, stats: dict, team_name: str) -> dict:
     """Columnas comunes a todas las filas de un equipo en un partido."""
     home = match["local"] == team_name
     return {
@@ -51,6 +51,8 @@ def match_context(match: dict, team_name: str) -> dict:
         "team": team_name,
         "opponent": match["visitor"] if home else match["local"],
         "home": home,
+        # Duración del partido en minutos: 40, o más si hay prórrogas.
+        "game_minutes": sum(stats["periodDurationList"]),
     }
 
 
@@ -61,7 +63,7 @@ def box(data: dict) -> dict:
 def player_rows(match: dict, stats: dict) -> list[dict]:
     rows = []
     for team in stats["teams"]:
-        context = match_context(match, team["name"])
+        context = match_context(match, stats, team["name"])
         for player in team["players"]:
             rows.append(
                 {
@@ -77,14 +79,17 @@ def player_rows(match: dict, stats: dict) -> list[dict]:
 
 
 def team_rows(match: dict, stats: dict) -> list[dict]:
-    return [{**match_context(match, team["name"]), **box(team["data"])} for team in stats["teams"]]
+    return [
+        {**match_context(match, stats, team["name"]), **box(team["data"])}
+        for team in stats["teams"]
+    ]
 
 
 def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     players = {m["eventUuid"]: m["actorName"] for m in moves}
     rows = []
     for team in stats["teams"]:
-        context = match_context(match, team["name"])
+        context = match_context(match, stats, team["name"])
         for period in team["periods"]:
             for key, (value, made) in SHOT_KEYS.items():
                 for point in period.get(key, []):
