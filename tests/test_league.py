@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from leioa_stats import parse, validate
-from leioa_stats.metrics import league
+from leioa_stats.metrics import league, origins, quarters
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MATCH_99138 = {"id": "99138", "round": 1, "local": "LEIOA SBT", "visitor": "EASO BASKET"}
@@ -17,6 +17,8 @@ def tables():
         "players": pd.DataFrame(parse.player_rows(MATCH_99138, stats)),
         "teams": pd.DataFrame(parse.team_rows(MATCH_99138, stats)),
         "shots": pd.DataFrame(parse.shot_rows(MATCH_99138, stats, moves)),
+        "quarters": pd.DataFrame(parse.quarter_rows(MATCH_99138, stats)),
+        "origins": pd.DataFrame(origins.origin_rows(MATCH_99138, stats, moves)),
     }
 
 
@@ -37,7 +39,7 @@ def test_ranks(tables):
 
 
 def test_team_profiles(tables):
-    profiles = league.team_profiles(tables["teams"])
+    profiles = league.team_profiles(tables["teams"], tables["origins"])
     assert list(profiles.columns) == league.COMPARISON_COLUMNS
     # Leioa ganó 76-70: lo que encaja uno es lo que anota el otro.
     assert profiles.loc["LEIOA SBT", ["PTS/PJ", "Encajados/PJ"]].tolist() == [76, 70]
@@ -50,9 +52,60 @@ def test_team_profiles(tables):
 
 
 def test_profile_average(tables):
-    average = league.profile_average(tables["teams"])
+    average = league.profile_average(tables["teams"], tables["origins"])
     assert average["PTS/PJ"] == average["Encajados/PJ"] == 73
     assert average["eFG% rival"] == average["eFG%"]
+    assert average["Contraataque/PJ rival"] == average["Contraataque/PJ"]
+
+
+def test_origin_rows_assign_every_point(tables):
+    rows = tables["origins"].set_index("team")
+    # Se reparten los mismos puntos que da el box score (76-70).
+    assert rows["PTS"].to_dict() == {"LEIOA SBT": 76, "EASO BASKET": 70}
+    for column in origins.ORIGIN_COLUMNS:
+        assert (rows[column] <= rows["PTS"]).all()
+    assert rows.loc["LEIOA SBT", "opponent"] == "EASO BASKET"
+
+
+def _move(team, code, period=1, minute=9, second=0):
+    return {"idTeam": team, "idMove": code, "period": period, "min": minute, "sec": second}
+
+
+def test_origin_rows_follow_possession():
+    stats = {
+        "teams": [{"teamIdIntern": 1, "name": "A"}, {"teamIdIntern": 2, "name": "B"}],
+        "periodDurationList": [10, 10, 10, 10],
+    }
+    moves = [
+        _move(2, validate.TWO_MISSED, second=50),
+        _move(1, validate.DEF_REBOUND, second=48),
+        _move(1, validate.TWO_MADE, second=44),  # contraataque: 4 s tras el rebote
+        _move(2, validate.TURNOVER, second=30),
+        _move(1, validate.THREE_MISSED, second=10),
+        _move(1, validate.OFF_REBOUND, second=8),
+        _move(1, validate.THREE_MADE, second=5),  # 2ª oportunidad, en la posesión tras pérdida
+        _move(2, validate.TWO_MADE, minute=8, second=50),  # B ataca tras la canasta: sin origen
+    ]
+    rows = {r["team"]: r for r in origins.origin_rows({"id": "1"}, stats, moves)}
+    assert rows["A"]["PTS"] == 5
+    assert rows["A"]["Contraataque"] == 2
+    assert rows["A"]["2ª oportunidad"] == 3
+    assert rows["A"]["Tras pérdida"] == 0
+    assert rows["A"]["RO"] == 1
+    assert rows["B"]["PTS"] == 2
+    assert rows["B"]["Contraataque"] == rows["B"]["Tras pérdida"] == 0
+
+
+def test_quarter_summary(tables):
+    summary = quarters.quarter_summary(tables["quarters"], tables["shots"], "LEIOA SBT")
+    assert list(summary.index) == ["C1", "C2", "C3", "C4"]
+    # Parciales del 99138: 22-20, 22-16, 14-17 y 18-17.
+    assert summary["PTS/PJ"].tolist() == [22, 22, 14, 18]
+    assert summary["Encajados/PJ"].tolist() == [20, 16, 17, 17]
+    assert summary.loc["C3", "DIF/PJ"] == -3
+    # Las pérdidas forzadas son las del rival en ese cuarto.
+    easo = quarters.quarter_summary(tables["quarters"], tables["shots"], "EASO BASKET")
+    assert summary["Forzadas/PJ"].tolist() == easo["PER/PJ"].tolist()
 
 
 def test_league_average_is_balanced(tables):

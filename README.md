@@ -78,6 +78,8 @@ uv run python -m leioa_stats.metrics
   - Four Factors = eFG%, PER%, RO% y TL/TC, del equipo y de sus rivales.
   - % de uso de cada jugador.
 - **Quintetos y +/-** (reconstruidos con el jugada a jugada; detalle en `metrics/lineups.py`): minutos, +/- y eficiencia de cada quinteto, y +/- y on/off de cada jugador (diferencia por 100 posesiones con él en pista y en el banquillo). El +/- coincide con el que calcula la federación.
+- **Por cuartos** (`metrics/quarters.py`): puntos anotados y encajados, acierto de 2, de 3 y cerca del aro, pérdidas propias y forzadas, y faltas de cada cuarto. Sale del box score de cada cuarto, que suma lo mismo que el del partido.
+- **Origen de los puntos** (estimación con el jugada a jugada; detalle en `metrics/origins.py`): puntos de 2ª oportunidad (tras rebote ofensivo), tras pérdida del rival y de contraataque (en los 8 segundos siguientes a un rebote defensivo o un robo), a favor y en contra, y puntos por rebote ofensivo.
 
 ## Web
 

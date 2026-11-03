@@ -7,6 +7,7 @@ from leioa_stats import parse, validate
 from leioa_stats.metrics import insights, league
 from leioa_stats.metrics.advanced import player_usage, team_games
 from leioa_stats.metrics.basic import player_season
+from leioa_stats.metrics.quarters import QUARTER_COLUMNS
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.web import build
 from leioa_stats.web.glossary import TERMS
@@ -121,8 +122,8 @@ def describe(label: str) -> str | None:
     for suffix in ("/PJ", "/40"):
         if label.endswith(suffix) and label.removesuffix(suffix) in TERMS:
             return TERMS[label.removesuffix(suffix)]
-    if label.endswith(" rival") and label.removesuffix(" rival") in TERMS:
-        return TERMS[label.removesuffix(" rival")]
+    if label.endswith(" rival"):
+        return describe(label.removesuffix(" rival"))
     return None
 
 
@@ -131,6 +132,7 @@ def test_every_column_has_a_definition(tables):
     columns = (
         build.TEAM_COLUMNS + build.PLAYER_COLUMNS + build.BOX_COLUMNS + build.SCOUTING_COLUMNS
         + build.LEAGUE_COLUMNS + build.FACTOR_ROWS + zone_columns + league.COMPARISON_COLUMNS
+        + QUARTER_COLUMNS
         + ["MIN", "PTS", "PTS rival", "+/-", "POSS", "ORtg", "DRtg", "NETO",
            "NETO en pista", "NETO en banquillo", "DIFERENCIA"]
     )  # fmt: skip

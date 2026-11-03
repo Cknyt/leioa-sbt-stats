@@ -98,6 +98,10 @@ def test_season_page(site):
     assert 'class="zone-bar"' in html
     assert 'href="partidos/99138.html"' in html
     assert "Leioa SBT 76-70 Easo Basket" in html
+    # Por cuartos y origen de los puntos, también en el scouting de cada equipo.
+    for section in ('id="cuartos"', 'id="origen"'):
+        assert section in html
+        assert section in (out / "equipos" / "easo-basket.html").read_text(encoding="utf-8")
     assert "Iñigo Carneros Villar" in html
     assert html.count('class="plotly-graph-div"') == 1
 

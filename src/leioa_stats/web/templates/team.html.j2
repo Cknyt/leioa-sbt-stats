@@ -52,6 +52,8 @@
   <div class="table-wrap">{{ factors | safe }}</div>
 </section>
 
+{% with subject = name %}{% include "quarters_origins.html.j2" %}{% endwith %}
+
 <section>
   <h2>Jugadores</h2>
   <p class="hint">"Perfil" es una estimación a partir de dónde tira cada jugador y de cuántos rebotes ofensivos coge (la federación no publica posiciones).</p>

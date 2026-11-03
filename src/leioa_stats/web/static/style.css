@@ -291,6 +291,8 @@ table.compare { min-width: 0; }
 /* Los nombres de equipo se parten en varias líneas para que la tabla quepa en el móvil. */
 table.compare thead th { vertical-align: bottom; white-space: normal; min-width: 64px; }
 table.compare th, table.compare td { padding: 5px 6px; }
+/* Las etiquetas largas ("Contraataque/PJ rival") también se parten. */
+table.compare tbody th { white-space: normal; }
 table.compare .team-meta { display: block; color: var(--muted); font-weight: 400; font-size: 0.75rem; }
 table.compare tr.group td {
   text-align: left;

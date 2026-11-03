@@ -23,7 +23,7 @@
       }
     }
     if (label.slice(-6) === " rival") {
-      var own = terms[label.slice(0, -6)];
+      var own = define(label.slice(0, -6));
       if (own) return "Lo mismo, pero de los rivales: lo que permite su defensa. " + own;
     }
     return null;

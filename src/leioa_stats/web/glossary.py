@@ -12,6 +12,29 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     (("PTS",), "Puntos."),
     (("PTS rival",), "Puntos del rival mientras ese quinteto estaba en pista."),
     (("Encajados",), "Puntos recibidos: los que anotan los rivales."),
+    (("DIF",), "Diferencia de puntos: anotados menos encajados."),
+    (
+        ("2ª oportunidad",),
+        "Puntos anotados en una posesión que sigue viva gracias a un rebote ofensivo propio "
+        "(estimación a partir del jugada a jugada).",
+    ),
+    (
+        ("PTS/RO",),
+        "Puntos de 2ª oportunidad por cada rebote ofensivo: cuánto se aprovecha cada uno. "
+        "La media de la liga ronda los 0,85.",
+    ),
+    (
+        ("Tras pérdida",),
+        "Puntos anotados en una posesión que empieza con una pérdida del rival o una "
+        "recuperación propia (estimación a partir del jugada a jugada).",
+    ),
+    (
+        ("Contraataque",),
+        "Puntos anotados en los 8 segundos siguientes a un rebote defensivo o una "
+        "recuperación. El umbral es una convención: el acta no dice si hubo contraataque.",
+    ),
+    (("Aro%",), "Acierto en los tiros cerca del aro (a menos de 3 metros)."),
+    (("Forzadas",), "Pérdidas del rival: balones que le hace perder la defensa."),
     (("Dorsal",), "Número de la camiseta."),
     (
         ("TC", "TCM", "TCA"),

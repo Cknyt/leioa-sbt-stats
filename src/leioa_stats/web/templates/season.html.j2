@@ -78,6 +78,8 @@
   <div class="table-wrap">{{ advanced | safe }}</div>
 </section>
 
+{% with subject = team_name %}{% include "quarters_origins.html.j2" %}{% endwith %}
+
 <section id="tiro">
   <h2>De dónde salen los tiros</h2>
   <p class="hint">La barra es el % de los tiros de campo que salen de cada zona; la cifra, el acierto.</p>

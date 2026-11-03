@@ -37,6 +37,8 @@ from leioa_stats.metrics.league import (
     team_profiles,
 )
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
+from leioa_stats.metrics.origins import origin_rows, origin_summary
+from leioa_stats.metrics.quarters import QUARTER_COLUMNS, quarter_summary
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
 from leioa_stats.validate import POINTS, validate_match
@@ -138,6 +140,20 @@ def box_score(players: pd.DataFrame, on_off: pd.DataFrame | None = None) -> pd.D
     df = df.sort_values("MIN", ascending=False)[columns]
     df.index = [display_name(p) for p in df.index]
     return df
+
+
+def quarters_and_origins(tables, team_name) -> dict:
+    """Tablas por cuartos y de origen de los puntos de un equipo (temporada y scouting)."""
+    origins = tables["origins"]
+    summary = pd.DataFrame(
+        {
+            display_name(team_name): origin_summary(origins[origins["team"] == team_name]),
+            "Rivales": origin_summary(origins[origins["opponent"] == team_name]),
+            "Media de la liga": origin_summary(origins),
+        }
+    ).T
+    quarters = quarter_summary(tables["quarters"], tables["shots"], team_name)
+    return {"quarters": table(quarters[QUARTER_COLUMNS], "Cuarto"), "origins": table(summary)}
 
 
 def match_page(match, stats, moves, tables, stints, team_name) -> dict:
@@ -286,6 +302,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         for column, term, detail in KPIS
     ]
     return {
+        **quarters_and_origins(tables, team_name),
         "kpis": kpis,
         "n_teams": len(league),
         "zone_bars": [
@@ -399,9 +416,9 @@ def better(own: float, other: float, direction: int) -> str | None:
 
 def comparison_page(tables, team_name, upcoming) -> dict:
     """Datos de la comparativa: el equipo frente a otro de la liga, cifra a cifra."""
-    profiles = team_profiles(tables["teams"])
+    profiles = team_profiles(tables["teams"], tables["origins"])
     team_ranks = profile_ranks(profiles)
-    average = profile_average(tables["teams"])
+    average = profile_average(tables["teams"], tables["origins"])
     league = league_table(tables["teams"])
     teams = {
         slug(name): {
@@ -515,6 +532,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
             }
         )
     return {
+        **quarters_and_origins(tables, team_name),
         "insights": insights,
         "name": display_name(team_name),
         "slug": slug(team_name),
@@ -545,6 +563,7 @@ def build_site(
     )
     tables = build_tables(raw_dir)
     tables["shots"] = add_zones(tables["shots"])
+    tables["origins"] = pd.DataFrame([row for m in all_matches for row in origin_rows(*m)])
     league = league_table(tables["teams"])
     average = league_average(tables["teams"])
     stints = {
