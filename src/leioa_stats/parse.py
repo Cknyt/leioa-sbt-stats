@@ -3,6 +3,7 @@
 Tablas:
 - players: una fila por jugador y partido (box score).
 - teams: una fila por equipo y partido, con los totales del equipo (incluye rebotes de equipo).
+- quarters: una fila por equipo, partido y cuarto (las prórrogas son los periodos 5, 6...).
 - shots: una fila por tiro de campo, con sus coordenadas.
 """
 
@@ -86,6 +87,14 @@ def team_rows(match: dict, stats: dict) -> list[dict]:
     ]
 
 
+def quarter_rows(match: dict, stats: dict) -> list[dict]:
+    return [
+        {**match_context(match, stats, team["name"]), "period": number, **box(period)}
+        for team in stats["teams"]
+        for number, period in enumerate(team["periods"], start=1)
+    ]
+
+
 def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     players = {m["eventUuid"]: m["actorName"] for m in moves}
     rows = []
@@ -125,14 +134,16 @@ def iter_matches(raw_dir: Path = RAW_DIR) -> Iterator[tuple[dict, dict, list[dic
 
 
 def build_tables(raw_dir: Path = RAW_DIR) -> dict[str, pd.DataFrame]:
-    """Lee todos los partidos descargados y devuelve las tablas players, teams y shots."""
-    players, teams, shots = [], [], []
+    """Lee todos los partidos descargados y devuelve las tablas players, teams, quarters y shots."""
+    players, teams, quarters, shots = [], [], [], []
     for match, stats, moves in iter_matches(raw_dir):
         players += player_rows(match, stats)
         teams += team_rows(match, stats)
+        quarters += quarter_rows(match, stats)
         shots += shot_rows(match, stats, moves)
     return {
         "players": pd.DataFrame(players),
         "teams": pd.DataFrame(teams),
+        "quarters": pd.DataFrame(quarters),
         "shots": pd.DataFrame(shots),
     }

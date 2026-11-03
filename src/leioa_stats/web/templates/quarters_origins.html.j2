@@ -1,0 +1,12 @@
+{# Por cuartos y origen de los puntos: en la temporada del equipo y en cada informe de scouting. #}
+<section id="cuartos">
+  <h2>Por cuartos</h2>
+  <p class="hint">Medias por partido de cada cuarto (PR = prórrogas). "Rival" y "Forzadas" son lo que hicieron sus rivales: su acierto cerca del aro y las pérdidas que les provocó la defensa.</p>
+  <div class="table-wrap">{{ quarters | safe }}</div>
+</section>
+
+<section id="origen">
+  <h2>Origen de los puntos</h2>
+  <p class="hint">Estimación a partir del jugada a jugada, siguiendo quién tiene el balón. "Rivales" es lo que le anotan a {{ subject }}. Un punto puede contar a la vez como "tras pérdida" y "contraataque", así que no se suman entre sí.</p>
+  <div class="table-wrap">{{ origins | safe }}</div>
+</section>

@@ -37,7 +37,7 @@ Comandos habituales:
 
 ## Estructura
 
-- `src/leioa_stats/`: el código. `download.py` (descarga con caché), `parse.py` (JSON a tablas), `validate.py` (contraste del jugada a jugada con el box score) y `metrics/` (`basic.py`, `advanced.py`, `lineups.py`, `shots.py`).
+- `src/leioa_stats/`: el código. `download.py` (descarga con caché), `parse.py` (JSON a tablas), `validate.py` (contraste del jugada a jugada con el box score) y `metrics/` (`basic.py`, `advanced.py`, `lineups.py`, `shots.py`, `quarters.py`, `origins.py`).
 - `data/raw/` y `data/processed/`: datos descargados y procesados. No se versionan.
 - `notebooks/`: exploración con Jupyter.
 - `src/leioa_stats/web/`: generación de la web (`build.py`, `charts.py`, `templates/` con Jinja2 y `static/style.css`). Se genera con `uv run python -m leioa_stats.web`.
