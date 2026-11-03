@@ -116,6 +116,11 @@ def iter_matches(raw_dir: Path = RAW_DIR) -> Iterator[tuple[dict, dict, list[dic
         match_dir = raw_dir / "matches" / match["id"]
         stats = json.loads((match_dir / "stats.json").read_text(encoding="utf-8"))
         moves = json.loads((match_dir / "moves.json").read_text(encoding="utf-8"))
+        # La mesa a veces escribe distinto el nombre de un equipo según el partido
+        # ("AISLA ARMENTI" y "AISLA ARMETI"). El calendario es constante: usamos sus
+        # nombres. El box score siempre trae primero al local y después al visitante.
+        local, visitor = stats["teams"]
+        local["name"], visitor["name"] = match["local"], match["visitor"]
         yield match, stats, moves
 
 

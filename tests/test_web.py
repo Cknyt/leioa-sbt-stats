@@ -198,3 +198,13 @@ def test_shot_chart_splits_made_and_missed():
     assert len(missed.x) == 2
     # Un lanzamiento desde campo propio se dibuja junto a la línea central.
     assert max(missed.y) < charts.HALF_COURT
+
+
+def test_team_names_come_from_calendar(tmp_path):
+    """Si el box score escribe distinto el nombre de un equipo, manda el del calendario."""
+    raw = tmp_path / "raw"
+    shutil.copytree(FIXTURES / "99138", raw / "matches" / "99138")
+    renamed = {**MATCH_99138, "visitor": "EASO BASKET KE"}
+    (raw / "matches.json").write_text(json.dumps([renamed]), encoding="utf-8")
+    build.build_site(raw, tmp_path / "site", "LEIOA SBT")
+    assert (tmp_path / "site" / "equipos" / "easo-basket-ke.html").exists()
