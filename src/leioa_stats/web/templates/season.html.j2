@@ -22,7 +22,10 @@
     <p class="eyebrow">Próximo partido · Jornada {{ next_match.round }}</p>
     <p class="next-rival">{{ next_rival }}</p>
     <p class="chips"><span class="chip">{{ next_date }}</span><span class="chip accent">{{ 'En casa' if next_home else 'Fuera' }}</span></p>
-    <a class="button" href="equipos/{{ next_rival_slug }}.html">Ver el informe del rival →</a>
+    <div class="actions">
+      <a class="button" href="equipos/{{ next_rival_slug }}.html">Ver el informe del rival →</a>
+      <a class="button secondary" href="comparativa.html#{{ next_rival_slug }}">Comparar →</a>
+    </div>
   </section>
   {% endif %}
 </div>

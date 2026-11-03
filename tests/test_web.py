@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from leioa_stats.metrics import league
 from leioa_stats.web import build, charts
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -49,12 +50,14 @@ def test_build_site_creates_pages(site):
     assert pages == [
         out / "index.html",
         out / "jugadores.html",
+        out / "comparativa.html",
         out / "partidos" / "99138.html",
         out / "equipos" / "leioa-sbt.html",
         out / "equipos" / "easo-basket.html",
     ]
     assert (out / "style.css").exists()
     assert (out / "players.js").exists()
+    assert (out / "comparison.js").exists()
 
 
 def test_next_match_links_to_rival_report(site):
@@ -112,6 +115,33 @@ def test_players_page(site):
     assert 'data-ts=""' not in html
     # La tabla completa sigue disponible.
     assert "Tabla completa de jugadores" in html
+
+
+def test_comparison_page(site):
+    out, _ = site
+    html = (out / "comparativa.html").read_text(encoding="utf-8")
+    assert 'aria-current="page">Comparativa' in html
+    # Por defecto, con el próximo rival; el equipo propio no está en el desplegable.
+    assert '<option value="easo-basket" selected>Easo Basket (próximo rival)</option>' in html
+    assert '<option value="leioa-sbt"' not in html
+    # Leioa ganó 76-70: sale mejor en puntos anotados y encajados.
+    assert html.count('<tr data-direction="') == len(league.COMPARISON_COLUMNS)
+    assert '<td class="better">76 <small>1º</small></td>' in html
+    assert '<td class="better">70 <small>1º</small></td>' in html
+    # Desde la portada y desde el informe del rival se llega a la comparativa.
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'href="comparativa.html#easo-basket"' in index
+    team = (out / "equipos" / "easo-basket.html").read_text(encoding="utf-8")
+    assert 'href="../comparativa.html#easo-basket"' in team
+
+
+@pytest.mark.parametrize(
+    ("own", "other", "direction", "expected"),
+    [(50, 40, 1, "own"), (50, 40, -1, "other"), (50, 40, 0, None), (50, 50, 1, None),
+     (float("nan"), 40, 1, None)],
+)  # fmt: skip
+def test_better(own, other, direction, expected):
+    assert build.better(own, other, direction) == expected
 
 
 def test_match_page(site):

@@ -130,7 +130,7 @@ def test_every_column_has_a_definition(tables):
     zone_columns = list(zone_summary(tables["shots"]).columns)
     columns = (
         build.TEAM_COLUMNS + build.PLAYER_COLUMNS + build.BOX_COLUMNS + build.SCOUTING_COLUMNS
-        + build.LEAGUE_COLUMNS + build.FACTOR_ROWS + zone_columns
+        + build.LEAGUE_COLUMNS + build.FACTOR_ROWS + zone_columns + league.COMPARISON_COLUMNS
         + ["MIN", "PTS", "PTS rival", "+/-", "POSS", "ORtg", "DRtg", "NETO",
            "NETO en pista", "NETO en banquillo", "DIFERENCIA"]
     )  # fmt: skip

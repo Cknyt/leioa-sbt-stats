@@ -1,7 +1,7 @@
 """Genera la web estática en site/.
 
-Páginas: la temporada del equipo, sus jugadores, una por cada partido suyo y una por cada
-equipo de la liga (scouting de rivales).
+Páginas: la temporada del equipo, sus jugadores, la comparativa con cualquier equipo de la
+liga, una por cada partido suyo y una por cada equipo de la liga (scouting de rivales).
 """
 
 import json
@@ -26,7 +26,16 @@ from leioa_stats.metrics.advanced import (
 )
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
 from leioa_stats.metrics.insights import match_insights, team_insights
-from leioa_stats.metrics.league import league_average, league_table, player_profiles, ranks
+from leioa_stats.metrics.league import (
+    COMPARISON,
+    league_average,
+    league_table,
+    player_profiles,
+    profile_average,
+    profile_ranks,
+    ranks,
+    team_profiles,
+)
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
@@ -205,10 +214,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
 
     league = league_table(tables["teams"])
     next_match = upcoming[0] if upcoming else None
-    next_rival = None
-    if next_match:
-        home = next_match["local"] == team_name
-        next_rival = next_match["visitor"] if home else next_match["local"]
+    next_rival = next_rival_of(upcoming, team_name)
     league_rows = [
         {
             "name": display_name(name),
@@ -377,6 +383,74 @@ def players_page(tables, stints, team_name) -> dict:
     }
 
 
+def next_rival_of(upcoming: list[dict], team_name: str) -> str | None:
+    if not upcoming:
+        return None
+    match = upcoming[0]
+    return match["visitor"] if match["local"] == team_name else match["local"]
+
+
+def better(own: float, other: float, direction: int) -> str | None:
+    """Quién sale mejor en una cifra: 'own', 'other' o nadie (empate o cifra sin mejor)."""
+    if direction == 0 or pd.isna(own) or pd.isna(other) or own == other:
+        return None
+    return "own" if (own - other) * direction > 0 else "other"
+
+
+def comparison_page(tables, team_name, upcoming) -> dict:
+    """Datos de la comparativa: el equipo frente a otro de la liga, cifra a cifra."""
+    profiles = team_profiles(tables["teams"])
+    team_ranks = profile_ranks(profiles)
+    average = profile_average(tables["teams"])
+    league = league_table(tables["teams"])
+    teams = {
+        slug(name): {
+            "name": display_name(name),
+            "record": f"{int(league.loc[name, 'V'])}-{int(league.loc[name, 'D'])}",
+            "games": int(league.loc[name, "PJ"]),
+            "values": [number(v) if pd.notna(v) else "–" for v in row],
+            # Para comparar en el navegador: los números sin formato (null si no hay dato).
+            "raw": [float(v) if pd.notna(v) else None for v in row],
+            "ranks": [int(r) for r in team_ranks.loc[name]],
+        }
+        for name, row in profiles.iterrows()
+    }
+    own = teams[slug(team_name)]
+    rivals = [(key, data["name"]) for key, data in teams.items() if data is not own]
+    rivals.sort(key=lambda item: item[1])
+    next_rival = next_rival_of(upcoming, team_name)
+    default = slug(next_rival) if next_rival and slug(next_rival) in teams else rivals[0][0]
+    rival = teams[default]
+    groups, i = [], 0
+    for title, rows in COMPARISON:
+        items = []
+        for column, direction in rows:
+            items.append(
+                {
+                    "column": column,
+                    "direction": direction,
+                    "own": own["values"][i],
+                    "own_rank": own["ranks"][i],
+                    "rival": rival["values"][i],
+                    "rival_rank": rival["ranks"][i],
+                    "average": number(average[column]),
+                    "better": better(own["raw"][i], rival["raw"][i], direction),
+                }
+            )
+            i += 1
+        groups.append({"title": title, "rows": items})
+    return {
+        "own": own,
+        "rival": rival,
+        "rival_slug": default,
+        "next_rival_slug": slug(next_rival) if next_rival else None,
+        "rivals": rivals,
+        "groups": groups,
+        "n_teams": len(teams),
+        "teams_json": json.dumps(teams, ensure_ascii=False).replace("</", "<\\/"),
+    }
+
+
 def team_page(team_name, all_matches, tables, stints, league, average, own_team) -> dict:
     """Datos de la página de scouting de un equipo de la liga."""
     players, shots = tables["players"], tables["shots"]
@@ -443,6 +517,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
     return {
         "insights": insights,
         "name": display_name(team_name),
+        "slug": slug(team_name),
         "is_own": team_name == own_team,
         "record": f"{int(row['V'])}-{int(row['D'])}",
         "ranks": ranks(league, team_name),
@@ -495,7 +570,7 @@ def build_site(
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
-    for static_file in ("style.css", "glossary.js", "players.js"):
+    for static_file in ("style.css", "glossary.js", "players.js", "comparison.js"):
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
 
     pages: list[Path] = []
@@ -518,6 +593,13 @@ def build_site(
         "",
         active="players",
         **players_page(tables, stints[team_name], team_name),
+    )
+    render(
+        out_dir / "comparativa.html",
+        "comparison.html.j2",
+        "",
+        active="comparison",
+        **comparison_page(tables, team_name, upcoming),
     )
     for match, stats, moves in own_matches:
         render(

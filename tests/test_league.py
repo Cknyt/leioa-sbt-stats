@@ -36,6 +36,25 @@ def test_ranks(tables):
     assert leioa["PER%"] == 1
 
 
+def test_team_profiles(tables):
+    profiles = league.team_profiles(tables["teams"])
+    assert list(profiles.columns) == league.COMPARISON_COLUMNS
+    # Leioa ganó 76-70: lo que encaja uno es lo que anota el otro.
+    assert profiles.loc["LEIOA SBT", ["PTS/PJ", "Encajados/PJ"]].tolist() == [76, 70]
+    assert profiles.loc["EASO BASKET", "Encajados/PJ"] == 76
+    ranks = league.profile_ranks(profiles)
+    assert ranks.loc["LEIOA SBT", "PTS/PJ"] == 1
+    # En las que menos es mejor, el 1º es el que menos tiene.
+    assert ranks.loc["LEIOA SBT", "Encajados/PJ"] == 1
+    assert ranks.loc["LEIOA SBT", "PER/PJ"] == 1
+
+
+def test_profile_average(tables):
+    average = league.profile_average(tables["teams"])
+    assert average["PTS/PJ"] == average["Encajados/PJ"] == 73
+    assert average["eFG% rival"] == average["eFG%"]
+
+
 def test_league_average_is_balanced(tables):
     average = league.league_average(tables["teams"])
     # En toda la liga, los puntos anotados son los recibidos.
