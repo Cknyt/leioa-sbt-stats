@@ -7,17 +7,40 @@ el jugador y de cuántos rebotes ofensivos coge:
 - Exterior: la mitad o más de sus tiros de campo son triples.
 - Mixto: el resto.
 Con menos de 10 tiros de campo no se estima.
+
+Comparativa entre equipos: los acumulados de la temporada de cada equipo. Las cifras de
+volumen (puntos, rebotes...) son medias por partido, para que no pese haber jugado uno más.
+Los porcentajes salen de los totales de la temporada, no de la media de cada partido.
 """
 
 import pandas as pd
 
 from leioa_stats.metrics.advanced import four_factors, ratings, team_games
+from leioa_stats.metrics.basic import season_totals
 from leioa_stats.metrics.shots import add_zones
 
 MIN_ATTEMPTS_FOR_PROFILE = 10
 
 LEAGUE_COLUMNS = ["PJ", "V", "D", "RITMO", "ORtg", "DRtg", "NETO", "eFG%", "PER%", "RO%",
                   "TL/TC", "eFG% rival", "PER% rival", "RO% rival", "TL/TC rival"]  # fmt: skip
+
+# Filas de la comparativa: (grupo, [(columna, sentido)]). Sentido 1 = más es mejor,
+# -1 = menos es mejor, 0 = ni mejor ni peor (es estilo de juego, como el ritmo).
+COMPARISON = [
+    ("Ritmo y eficiencia", [("RITMO", 0), ("ORtg", 1), ("DRtg", -1), ("NETO", 1)]),
+    ("Puntos", [("PTS/PJ", 1), ("Encajados/PJ", -1)]),
+    ("Tiro", [("TC%", 1), ("T2%", 1), ("T3%", 1), ("T1%", 1), ("eFG%", 1), ("TS%", 1),
+              ("T3A/PJ", 0), ("TL/TC", 1)]),
+    ("Rebote y balón", [("RT/PJ", 1), ("RO/PJ", 1), ("RD/PJ", 1), ("RO%", 1), ("AS/PJ", 1),
+                        ("PER/PJ", -1), ("PER%", -1), ("REC/PJ", 1), ("TAP/PJ", 1),
+                        ("FP/PJ", -1)]),
+    ("Lo que permite a sus rivales", [("eFG% rival", -1), ("PER% rival", 1), ("RO% rival", -1),
+                                      ("TL/TC rival", -1)]),
+]  # fmt: skip
+COMPARISON_COLUMNS = [column for _, rows in COMPARISON for column, _ in rows]
+# Las que no están en la clasificación (league_table) salen de los totales de cada equipo.
+BOX_COMPARISON = ["PTS/PJ", "TC%", "T2%", "T3%", "T1%", "TS%", "T3A/PJ", "RT/PJ", "RO/PJ",
+                  "RD/PJ", "AS/PJ", "PER/PJ", "REC/PJ", "TAP/PJ", "FP/PJ"]  # fmt: skip
 
 
 def league_table(teams: pd.DataFrame) -> pd.DataFrame:
@@ -55,6 +78,39 @@ def ranks(table: pd.DataFrame, team: str) -> dict[str, int]:
         column: int(table[column].rank(ascending=column in lower_is_better, method="min")[team])
         for column in ["RITMO", "ORtg", "DRtg", "NETO", "eFG%", "PER%", "RO%", "TL/TC"]
     }
+
+
+def team_profiles(teams: pd.DataFrame) -> pd.DataFrame:
+    """Una fila por equipo con todas las cifras de la comparativa (acumulado de la temporada)."""
+    table = league_table(teams)
+    rows = {}
+    for team in table.index:
+        own = season_totals(teams[teams["team"] == team])[BOX_COMPARISON]
+        rivals = teams[(teams["opponent"] == team) & (teams["team"] != team)]
+        own["Encajados/PJ"] = season_totals(rivals)["PTS/PJ"]
+        rows[team] = own
+    return table.join(pd.DataFrame(rows).T.astype(float))[COMPARISON_COLUMNS]
+
+
+def profile_average(teams: pd.DataFrame) -> pd.Series:
+    """Media de la liga de cada cifra de la comparativa (todos los partidos juntos)."""
+    average = pd.concat([league_average(teams), season_totals(teams)[BOX_COMPARISON]])
+    # En la liga entera, lo que se anota es lo que se encaja y lo que se permite es lo que se hace.
+    average["Encajados/PJ"] = average["PTS/PJ"]
+    for column in ["eFG%", "PER%", "RO%", "TL/TC"]:
+        average[f"{column} rival"] = average[column]
+    return average[COMPARISON_COLUMNS].astype(float).round(1)
+
+
+def profile_ranks(profiles: pd.DataFrame) -> pd.DataFrame:
+    """Puesto de cada equipo en cada cifra (1 = el mejor; si no hay mejor, 1 = el más alto)."""
+    return pd.DataFrame(
+        {
+            column: profiles[column].rank(ascending=direction == -1, method="min").astype(int)
+            for _, rows in COMPARISON
+            for column, direction in rows
+        }
+    )
 
 
 def player_profiles(players: pd.DataFrame, shots: pd.DataFrame, team: str) -> pd.DataFrame:

@@ -1,0 +1,57 @@
+{% extends "base.html.j2" %}
+{% block title %}Comparativa{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Comparativa</h1>
+    <p class="hint">Acumulado de la temporada, cifra a cifra. Las de volumen son medias por partido; los porcentajes salen de los totales.</p>
+  </div>
+  {# Sin JavaScript se ve la comparativa con el próximo rival y el desplegable no se muestra. #}
+  <label class="picker" hidden>
+    <span>Comparar con</span>
+    <select id="rival-picker">
+      {% for key, name in rivals %}
+      <option value="{{ key }}"{% if key == rival_slug %} selected{% endif %}>{{ name }}{% if key == next_rival_slug %} (próximo rival){% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+</div>
+{% if n_games < 8 %}
+<p class="note">Solo hay {{ n_games }} partidos: con tan pocos, un buen o mal día cambia mucho las cifras. Sirve para orientarse, no para sacar conclusiones firmes.</p>
+{% endif %}
+
+<section>
+  <div class="table-wrap">
+    <table class="data compare">
+      <thead>
+        <tr>
+          <th></th>
+          <th>{{ own.name }}<span class="team-meta">{{ own.games }} PJ · {{ own.record }}</span></th>
+          <th><span id="rival-name">{{ rival.name }}</span><span class="team-meta" id="rival-meta">{{ rival.games }} PJ · {{ rival.record }}</span></th>
+          <th>Media liga</th>
+        </tr>
+      </thead>
+      {% for group in groups %}
+      <tbody>
+        <tr class="group"><td colspan="4">{{ group.title }}</td></tr>
+        {% for row in group.rows %}
+        <tr data-direction="{{ row.direction }}">
+          <th>{{ row.column }}</th>
+          <td class="{{ 'better' if row.better == 'own' }}">{{ row.own }} <small>{{ row.own_rank }}º</small></td>
+          <td class="rival{{ ' better' if row.better == 'other' }}">{{ row.rival }} <small>{{ row.rival_rank }}º</small></td>
+          <td>{{ row.average }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="hint">En verde, el equipo que sale mejor en cada cifra. El número pequeño es su puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor). El ritmo y los triples intentados no son ni mejores ni peores, sino estilo de juego: ahí el 1º es el más alto.</p>
+  <p class="hint">Los rebotes, pérdidas y recuperaciones incluyen los "de equipo" (sin jugador). Los tapones se anotan de forma irregular en la mesa: tómalos con cautela.</p>
+  <p class="back"><a id="rival-link" href="equipos/{{ rival_slug }}.html">Ver el informe de scouting de <span id="rival-link-name">{{ rival.name }}</span> →</a></p>
+</section>
+
+{% include "glossary.html.j2" %}
+<script id="teams-data" type="application/json">{{ teams_json | safe }}</script>
+<script src="comparison.js"></script>
+{% endblock %}

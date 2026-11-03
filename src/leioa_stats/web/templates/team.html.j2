@@ -17,6 +17,7 @@
     <span data-term="Tiros libres">Tiros libres <b>{{ ranks['TL/TC'] }}º</b></span>
   </div>
   <p class="hint">Puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor; en ritmo, el más rápido).</p>
+  {% if not is_own %}<p class="back"><a href="{{ root }}comparativa.html#{{ slug }}">Comparar con {{ team_name }} →</a></p>{% endif %}
   {% if results | length < 6 %}
   <p class="note">Con {{ results | length }} partidos la muestra es pequeña: sirve para orientarse, no para sacar conclusiones firmes.</p>
   {% endif %}

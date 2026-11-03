@@ -11,6 +11,7 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     (("MIN",), "Minutos jugados."),
     (("PTS",), "Puntos."),
     (("PTS rival",), "Puntos del rival mientras ese quinteto estaba en pista."),
+    (("Encajados",), "Puntos recibidos: los que anotan los rivales."),
     (("Dorsal",), "Número de la camiseta."),
     (
         ("TC", "TCM", "TCA"),

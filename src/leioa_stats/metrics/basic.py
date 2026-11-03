@@ -53,16 +53,18 @@ def player_season(players: pd.DataFrame, team_name: str) -> pd.DataFrame:
     return season.sort_values("MIN", ascending=False)
 
 
+def season_totals(df: pd.DataFrame) -> pd.Series:
+    """Totales, porcentajes de tiro y medias por partido de un conjunto de filas de equipo."""
+    totals = df[COUNT_COLUMNS[1:]].sum()
+    totals["PJ"] = len(df)
+    season = add_shooting(totals.to_frame().T).iloc[0]
+    for column in ["PTS", "RT", "RO", "RD", "AS", "PER", "REC", "TAP", "FP", "T3A"]:
+        season[f"{column}/PJ"] = round(season[column] / season["PJ"], 1)
+    return season
+
+
 def team_season(teams: pd.DataFrame, team_name: str) -> pd.DataFrame:
     """Totales y medias del equipo frente a lo que han hecho sus rivales."""
     own = teams[teams["team"] == team_name]
     rivals = teams[(teams["opponent"] == team_name) & (teams["team"] != team_name)]
-    rows = {}
-    for label, df in ((team_name, own), ("Rivales", rivals)):
-        totals = df[COUNT_COLUMNS[1:]].sum()
-        totals["PJ"] = len(df)
-        rows[label] = totals
-    season = add_shooting(pd.DataFrame(rows).T)
-    for column in ["PTS", "RT", "RO", "RD", "AS", "PER", "REC", "TAP", "FP"]:
-        season[f"{column}/PJ"] = (season[column] / season["PJ"]).round(1)
-    return season
+    return pd.DataFrame({team_name: season_totals(own), "Rivales": season_totals(rivals)}).T
