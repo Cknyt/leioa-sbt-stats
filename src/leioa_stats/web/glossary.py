@@ -14,6 +14,11 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     (("Encajados",), "Puntos recibidos: los que anotan los rivales."),
     (("DIF",), "Diferencia de puntos: anotados menos encajados."),
     (
+        ("Dif. C1", "Dif. C2", "Dif. C3", "Dif. C4"),
+        "Diferencia de puntos (anotados menos encajados) por partido en ese cuarto. "
+        "Positiva = el equipo suele ganar ese cuarto.",
+    ),
+    (
         ("2ª oportunidad",),
         "Puntos anotados en una posesión que sigue viva gracias a un rebote ofensivo propio "
         "(estimación a partir del jugada a jugada).",

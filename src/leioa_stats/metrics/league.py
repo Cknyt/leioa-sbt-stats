@@ -18,6 +18,7 @@ import pandas as pd
 from leioa_stats.metrics.advanced import four_factors, ratings, team_games
 from leioa_stats.metrics.basic import season_totals
 from leioa_stats.metrics.origins import origin_average, origin_profiles
+from leioa_stats.metrics.quarters import DIFFERENCE_COLUMNS, quarter_differences
 from leioa_stats.metrics.shots import add_zones
 
 MIN_ATTEMPTS_FOR_PROFILE = 10
@@ -35,6 +36,7 @@ COMPARISON = [
     ("Rebote y balón", [("RT/PJ", 1), ("RO/PJ", 1), ("RD/PJ", 1), ("RO%", 1), ("AS/PJ", 1),
                         ("PER/PJ", -1), ("PER%", -1), ("REC/PJ", 1), ("TAP/PJ", 1),
                         ("FP/PJ", -1)]),
+    ("Por cuartos", [(column, 1) for column in DIFFERENCE_COLUMNS]),
     ("Origen de los puntos", [("2ª oportunidad/PJ", 1), ("PTS/RO", 1), ("Tras pérdida/PJ", 1),
                               ("Contraataque/PJ", 1)]),
     ("Lo que permite a sus rivales", [("eFG% rival", -1), ("PER% rival", 1), ("RO% rival", -1),
@@ -85,10 +87,13 @@ def ranks(table: pd.DataFrame, team: str) -> dict[str, int]:
     }
 
 
-def team_profiles(teams: pd.DataFrame, origins: pd.DataFrame) -> pd.DataFrame:
+def team_profiles(
+    teams: pd.DataFrame, origins: pd.DataFrame, quarters: pd.DataFrame
+) -> pd.DataFrame:
     """Una fila por equipo con todas las cifras de la comparativa (acumulado de la temporada).
 
-    `origins` es la tabla de metrics/origins.py (origen de los puntos de cada partido).
+    `origins` es la tabla de metrics/origins.py (origen de los puntos de cada partido) y
+    `quarters`, la de cada cuarto (parse.quarter_rows).
     """
     table = league_table(teams)
     rows = {}
@@ -98,7 +103,8 @@ def team_profiles(teams: pd.DataFrame, origins: pd.DataFrame) -> pd.DataFrame:
         own["Encajados/PJ"] = season_totals(rivals)["PTS/PJ"]
         rows[team] = own
     box = pd.DataFrame(rows).T.astype(float)
-    return table.join(box).join(origin_profiles(origins))[COMPARISON_COLUMNS]
+    profiles = table.join(box).join(origin_profiles(origins)).join(quarter_differences(quarters))
+    return profiles[COMPARISON_COLUMNS]
 
 
 def profile_average(teams: pd.DataFrame, origins: pd.DataFrame) -> pd.Series:
@@ -110,6 +116,8 @@ def profile_average(teams: pd.DataFrame, origins: pd.DataFrame) -> pd.Series:
     average["Encajados/PJ"] = average["PTS/PJ"]
     for column in ["eFG%", "PER%", "RO%", "TL/TC"]:
         average[f"{column} rival"] = average[column]
+    for column in DIFFERENCE_COLUMNS:
+        average[column] = 0.0
     return average[COMPARISON_COLUMNS].astype(float).round(2)
 
 

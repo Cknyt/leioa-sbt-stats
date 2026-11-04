@@ -13,6 +13,8 @@ from leioa_stats.metrics.shots import add_zones
 QUARTER_COLUMNS = ["PJ", "PTS/PJ", "Encajados/PJ", "DIF/PJ", "T2%", "T3%", "Aro%",
                    "Aro% rival", "PER/PJ", "Forzadas/PJ", "FP/PJ"]  # fmt: skip
 LABELS = ["C1", "C2", "C3", "C4", "PR"]
+# Columnas de la comparativa: diferencia de puntos por partido en cada cuarto.
+DIFFERENCE_COLUMNS = [f"Dif. C{n}" for n in range(1, 5)]
 
 
 def period_label(period: pd.Series) -> pd.Series:
@@ -61,3 +63,16 @@ def quarter_summary(quarters: pd.DataFrame, shots: pd.DataFrame, team_name: str)
     summary = pd.DataFrame(rows).T.astype(float).round(1)
     summary["PJ"] = summary["PJ"].astype(int)
     return summary
+
+
+def quarter_differences(quarters: pd.DataFrame) -> pd.DataFrame:
+    """Una fila por equipo: diferencia de puntos por partido en cada cuarto (sin prórrogas)."""
+    regular = quarters[quarters["period"] <= 4]
+    rival = regular[["match_id", "period", "team", "PTS"]].rename(
+        columns={"team": "opponent", "PTS": "PTS_opp"}
+    )
+    games = regular.merge(rival, on=["match_id", "period", "opponent"])
+    games["DIF"] = games["PTS"] - games["PTS_opp"]
+    differences = games.pivot_table(index="team", columns="period", values="DIF", aggfunc="mean")
+    differences.columns = [f"Dif. C{p}" for p in differences.columns]
+    return differences.round(1)
