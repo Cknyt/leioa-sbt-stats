@@ -39,7 +39,7 @@ def test_ranks(tables):
 
 
 def test_team_profiles(tables):
-    profiles = league.team_profiles(tables["teams"], tables["origins"])
+    profiles = league.team_profiles(tables["teams"], tables["origins"], tables["quarters"])
     assert list(profiles.columns) == league.COMPARISON_COLUMNS
     # Leioa ganó 76-70: lo que encaja uno es lo que anota el otro.
     assert profiles.loc["LEIOA SBT", ["PTS/PJ", "Encajados/PJ"]].tolist() == [76, 70]
@@ -56,6 +56,15 @@ def test_profile_average(tables):
     assert average["PTS/PJ"] == average["Encajados/PJ"] == 73
     assert average["eFG% rival"] == average["eFG%"]
     assert average["Contraataque/PJ rival"] == average["Contraataque/PJ"]
+    # En la liga entera, cada cuarto que gana uno lo pierde otro.
+    assert average["Dif. C1"] == 0
+
+
+def test_quarter_differences(tables):
+    differences = quarters.quarter_differences(tables["quarters"])
+    # Parciales del 99138: 22-20, 22-16, 14-17 y 18-17.
+    assert differences.loc["LEIOA SBT"].tolist() == [2, 6, -3, 1]
+    assert differences.loc["EASO BASKET"].tolist() == [-2, -6, 3, -1]
 
 
 def test_origin_rows_assign_every_point(tables):

@@ -416,7 +416,7 @@ def better(own: float, other: float, direction: int) -> str | None:
 
 def comparison_page(tables, team_name, upcoming) -> dict:
     """Datos de la comparativa: el equipo frente a otro de la liga, cifra a cifra."""
-    profiles = team_profiles(tables["teams"], tables["origins"])
+    profiles = team_profiles(tables["teams"], tables["origins"], tables["quarters"])
     team_ranks = profile_ranks(profiles)
     average = profile_average(tables["teams"], tables["origins"])
     league = league_table(tables["teams"])
