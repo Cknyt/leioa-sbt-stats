@@ -1,7 +1,7 @@
-"""Tests de registrar.php, el receptor del diario de visitas.
+"""Tests del diario de visitas: registrar.php (el receptor) e informe.php (el informe).
 
 Se ejecutan con el PHP instalado en el equipo (en GitHub Actions viene de serie). Cada test
-carga registrar.php, que en modo consola solo define sus funciones, y llama a una de ellas.
+carga el archivo PHP, que en modo consola solo define sus funciones, y llama a una de ellas.
 """
 
 import json
@@ -11,15 +11,17 @@ from pathlib import Path
 
 import pytest
 
-REGISTRAR = Path(__file__).parents[1] / "src" / "leioa_stats" / "web" / "php" / "registrar.php"
+PHP_DIR = Path(__file__).parents[1] / "src" / "leioa_stats" / "web" / "php"
+REGISTRAR = PHP_DIR / "registrar.php"
+REPORT = PHP_DIR / "informe.php"
 NOW = 1_762_700_000  # 9/11/2025, para que el archivo del mes sea conocido.
 UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Safari/604.1"
 
 pytestmark = pytest.mark.skipif(shutil.which("php") is None, reason="PHP no está instalado")
 
 
-def run_php(code: str) -> str:
-    script = f"require {json.dumps(str(REGISTRAR))};\ndate_default_timezone_set('Europe/Madrid');\n"
+def run_php(code: str, php_file: Path = REGISTRAR) -> str:
+    script = f"require {json.dumps(str(php_file))};\ndate_default_timezone_set('Europe/Madrid');\n"
     result = subprocess.run(
         ["php", "-r", script + code], capture_output=True, text=True, check=True
     )
@@ -88,3 +90,70 @@ def test_append_record_protects_the_data_file(tmp_path):
     assert lines[0] == "<?php http_response_code(404); exit; ?>"
     assert [json.loads(line) for line in lines[1:]] == [record, record]
     assert "Require all denied" in (folder / ".htaccess").read_text(encoding="utf-8")
+
+
+ANDROID = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Chrome/141.0 Mobile Safari/537.36"
+WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36"
+
+
+def report(code: str):
+    return json.loads(run_php(f"echo json_encode({code});", REPORT))
+
+
+@pytest.mark.parametrize(
+    ("ua", "expected"),
+    [
+        (UA, "iPhone · iOS 18 · Safari · 390×844"),
+        (ANDROID, "Android 10 · Chrome · 390×844"),
+        (WINDOWS, "Ordenador Windows · Chrome · 390×844"),
+    ],
+)
+def test_describe_device(ua, expected):
+    assert report(f"describe_device({json.dumps(ua)}, '390x844@3')") == expected
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("/leioa/", "Resumen"),
+        ("/leioa/index.html#quintetos", "Resumen › Quintetos"),
+        ("/leioa/jugadores.html", "Jugadores"),
+        ("/leioa/partidos/99138.html", "Partido 99138"),
+        ("/leioa/equipos/easo-basket.html", "Equipo easo basket"),
+    ],
+)
+def test_page_label(path, expected):
+    assert report(f"page_label({json.dumps(path)})") == expected
+
+
+def test_visits_group_pages_of_the_same_device():
+    def start(view, ts, page, ua=UA):
+        return {"ts": ts, "v": view, "t": "start", "p": page, "r": "", "w": "390x844@3", "ua": ua}
+
+    records = [
+        start("a", NOW, "/leioa/index.html"),
+        {"ts": NOW + 30, "v": "a", "t": "section", "id": "quintetos"},
+        {"ts": NOW + 120, "v": "a", "t": "ping", "s": 120},
+        # Mismo aparato 5 minutos después: misma visita.
+        start("b", NOW + 400, "/leioa/jugadores.html"),
+        {"ts": NOW + 460, "v": "b", "t": "ping", "s": 60},
+        # Mismo aparato 2 horas después: otra visita.
+        start("c", NOW + 7200, "/leioa/index.html"),
+        # Otro aparato a la vez: otra visita.
+        start("d", NOW + 10, "/leioa/comparativa.html", ua=WINDOWS),
+        # Aviso de una página cuyo inicio no llegó: se ignora.
+        {"ts": NOW, "v": "zzz", "t": "ping", "s": 999},
+    ]
+    visits = report(
+        f"build_visits(build_views(json_decode({json.dumps(json.dumps(records))}, true)))"
+    )
+    assert [(v["seconds"], v["pages"]) for v in visits] == [
+        (180, ["Resumen (Quintetos)", "Jugadores"]),
+        (0, ["Comparativa"]),
+        (0, ["Resumen"]),
+    ]
+    assert visits[0]["device"] == visits[2]["device"] != visits[1]["device"]
+
+
+def test_duration():
+    assert report("[duration(45), duration(150), duration(4000)]") == ["45 s", "2 min", "1 h 6 min"]

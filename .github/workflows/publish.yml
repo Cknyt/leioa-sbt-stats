@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_FTP: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' && vars.FTP_SERVER_DIR != '' }}
+      HAS_REPORT_KEY: ${{ secrets.INFORME_CLAVE != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +49,19 @@ jobs:
 
       - name: Generar la web
         run: uv run python -m leioa_stats.web
+
+      # Contraseña del informe de visitas: se guarda solo su huella (hash) en informe-clave.php.
+      # El archivo es PHP, así que desde internet no se puede leer. Sin el secreto
+      # INFORME_CLAVE no se crea y el informe queda desactivado.
+      - name: Clave del informe de visitas
+        if: env.HAS_REPORT_KEY == 'true'
+        env:
+          INFORME_CLAVE: ${{ secrets.INFORME_CLAVE }}
+        run: |
+          php -r '
+            $hash = password_hash(getenv("INFORME_CLAVE"), PASSWORD_DEFAULT);
+            file_put_contents("site/informe-clave.php", "<?php return " . var_export($hash, true) . ";" . PHP_EOL);
+          '
 
       - name: Guardar la web como artefacto
         uses: actions/upload-artifact@v4
