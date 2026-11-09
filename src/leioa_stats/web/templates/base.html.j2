@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="{{ root }}style.css">
   <script src="{{ plotly_url }}" charset="utf-8"></script>
+  <script src="{{ root }}visits.js" data-endpoint="{{ root }}registrar.php" defer></script>
 </head>
 <body>
   <header class="top">
@@ -38,6 +39,7 @@
   </main>
   <footer>
     <p>Datos públicos de <a href="https://basketbasko.com/es/group/?id=2876">basketbasko.com</a> (Federación Vasca de Baloncesto), anotados a mano en la mesa del partido. {{ n_games }} partidos. Generado el {{ generated }}.</p>
+    <p>Se cuentan las visitas (página, tiempo y tipo de aparato) sin cookies ni datos personales, para saber si la web es útil.</p>
   </footer>
 </body>
 </html>

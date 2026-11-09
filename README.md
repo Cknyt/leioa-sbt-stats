@@ -133,6 +133,16 @@ Notas:
 
 Sin esta configuración, el workflow genera la web igualmente (se puede descargar desde la ejecución, en *Artifacts*), pero no la sube. Es una web estática: se puede publicar en cualquier hosting que sirva HTML, sin necesidad de Python.
 
+## Diario de visitas
+
+La web es para el cuerpo técnico (cinco personas como mucho). Para saber si la usa solo el entrenador o más gente, cada página apunta sus visitas, sin cookies, sin guardar nada en el aparato y sin la IP:
+
+- `static/visits.js` avisa al abrir una página (página, procedencia y pantalla), cada 30 segundos mientras la pestaña está visible (tiempo de lectura) y cuando una sección de la portada pasa por el centro de la pantalla. Al revisar la web en local no envía nada.
+- `php/registrar.php` se ejecuta en el hosting: comprueba cada aviso y lo apunta, con la hora y el navegador, en `datos/visitas-AAAA-MM.php`, una línea por aviso.
+- El archivo de datos empieza con un `exit` de PHP: si alguien lo pide desde internet, no ve nada. `datos/.htaccess` también bloquea la carpeta. La publicación no toca `datos/`.
+
+El informe para consultar las visitas está pendiente.
+
 ## Estado
 
 Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. La web ya se genera en local, con scouting de los 14 equipos. El siguiente paso es publicarla y automatizar la actualización tras cada jornada.
