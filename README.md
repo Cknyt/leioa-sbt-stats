@@ -141,7 +141,12 @@ La web es para el cuerpo técnico (cinco personas como mucho). Para saber si la 
 - `php/registrar.php` se ejecuta en el hosting: comprueba cada aviso y lo apunta, con la hora y el navegador, en `datos/visitas-AAAA-MM.php`, una línea por aviso.
 - El archivo de datos empieza con un `exit` de PHP: si alguien lo pide desde internet, no ve nada. `datos/.htaccess` también bloquea la carpeta. La publicación no toca `datos/`.
 
-El informe para consultar las visitas está pendiente.
+El informe está en <https://ownbasketball.com/leioa/informe.php> y pide contraseña cada vez (sin cookies):
+
+- La contraseña es el secreto de GitHub `INFORME_CLAVE`, que crea el usuario. Al publicar, se guarda solo su huella (*hash*) en `informe-clave.php`. Sin el secreto, el informe queda desactivado. Para cambiar la contraseña, se cambia el secreto y se vuelve a publicar.
+- **Aparatos:** cada navegador con su pantalla, con visitas, tiempo y última visita. Se les puede poner nombre y marcar los propios como "soy yo" para que no cuenten. Los nombres se guardan en `datos/aparatos.php`, con la misma protección.
+- **Visitas:** una a una. Mismo aparato y menos de 30 minutos entre páginas cuentan como una visita. El tiempo es el que las páginas estuvieron a la vista.
+- **Límites:** la misma persona con móvil y ordenador cuenta como dos aparatos, y dos aparatos idénticos (mismo modelo, versión y navegador) se verían como uno.
 
 ## Estado
 
