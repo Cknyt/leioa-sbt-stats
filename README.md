@@ -105,11 +105,7 @@ Después abre <http://localhost:8000>.
 
 ## Publicación
 
-GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon**. La carpeta `web` es la raíz pública del dominio, así que la web queda en <https://ownbasketball.com/leioa/>. Se ejecuta:
-
-- **cada lunes a las 06:00 UTC**, después de la jornada del fin de semana;
-- cada vez que llega a `main` un cambio de código;
-- a mano, desde la pestaña *Actions* > *Publicar web* > *Run workflow*.
+GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon**. La carpeta `web` es la raíz pública del dominio, así que la web queda en <https://ownbasketball.com/leioa/>. Se ejecuta **solo a mano**, cuando el usuario decide publicar: pestaña *Actions* > *Publicar web* > *Run workflow* (rama `main`), o con `gh workflow run publish.yml`. Las ejecuciones automáticas (cada lunes y al llegar código a `main`) se quitaron para controlar cuándo cambia la web.
 
 La web no se indexa en buscadores (`noindex`): se ve con el enlace, pero no aparece en Google.
 

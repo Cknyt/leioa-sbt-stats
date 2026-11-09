@@ -1,6 +1,7 @@
 # Descarga los partidos, genera la web y la sube al hosting por FTP.
-# Se ejecuta cada lunes por la mañana, cuando llega a main un cambio de código y a mano
-# (pestaña Actions > Publicar web > Run workflow).
+# Solo se ejecuta a mano (pestaña Actions > Publicar web > Run workflow): el usuario decide
+# cuándo publicar. Las ejecuciones automáticas (cada lunes y al llegar código a main) están
+# quitadas; para recuperarlas, vuelve a añadir los bloques schedule y push en "on".
 #
 # Configuración (Settings > Secrets and variables > Actions):
 # - Secretos: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
@@ -10,12 +11,7 @@
 name: Publicar web
 
 on:
-  schedule:
-    - cron: "0 6 * * 1" # lunes a las 06:00 UTC (08:00 en verano, 07:00 en invierno)
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ["src/**", "pyproject.toml", "uv.lock", ".github/workflows/publish.yml"]
 
 # Nunca dos publicaciones a la vez.
 concurrency:
