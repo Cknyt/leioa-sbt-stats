@@ -168,6 +168,19 @@ def test_pages_are_not_indexed(site):
         )
 
 
+def test_pages_load_visit_log(site):
+    # Cada página carga el diario de visitas con la ruta correcta a registrar.php.
+    out, pages = site
+    assert (out / "visits.js").exists()
+    assert (out / "registrar.php").exists()
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'src="visits.js" data-endpoint="registrar.php"' in index
+    match = (out / "partidos" / "99138.html").read_text(encoding="utf-8")
+    assert 'src="../visits.js" data-endpoint="../registrar.php"' in match
+    for page in pages:
+        assert "sin cookies ni datos personales" in page.read_text(encoding="utf-8")
+
+
 def test_pages_have_no_missing_values(site):
     _, pages = site
     for page in pages:

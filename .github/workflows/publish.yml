@@ -66,6 +66,13 @@ jobs:
           protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
           local-dir: ./site/
           server-dir: ${{ vars.FTP_SERVER_DIR }}
+          # datos/ guarda el diario de visitas que escribe registrar.php en el hosting: la
+          # publicación no debe tocarlo. Las tres primeras líneas son las exclusiones por defecto.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            datos/**
 
       - name: Aviso si falta la configuración del hosting
         if: env.HAS_FTP != 'true'

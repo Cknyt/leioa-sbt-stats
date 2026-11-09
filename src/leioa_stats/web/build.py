@@ -589,8 +589,10 @@ def build_site(
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
-    for static_file in ("style.css", "glossary.js", "players.js", "comparison.js"):
+    for static_file in ("style.css", "glossary.js", "players.js", "comparison.js", "visits.js"):
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
+    # Receptor del diario de visitas: se ejecuta en el hosting, que admite PHP.
+    shutil.copy(HERE / "php" / "registrar.php", out_dir / "registrar.php")
 
     pages: list[Path] = []
 

@@ -19,6 +19,11 @@ jobs:
         # --locked: falla si uv.lock no está al día con pyproject.toml.
         run: uv sync --locked
 
+      # registrar.php se ejecuta en el hosting: se comprueba que no tiene errores de sintaxis.
+      # Sus tests (tests/test_visits.py) usan el PHP que ya trae ubuntu-latest.
+      - name: Sintaxis PHP
+        run: php -l src/leioa_stats/web/php/registrar.php
+
       - name: Tests
         run: uv run python -m pytest
 
