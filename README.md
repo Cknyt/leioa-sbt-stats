@@ -148,6 +148,16 @@ El informe está en <https://ownbasketball.com/leioa/informe.php> y pide contras
 - **Visitas:** una a una. Mismo aparato y menos de 30 minutos entre páginas cuentan como una visita. El tiempo es el que las páginas estuvieron a la vista.
 - **Límites:** la misma persona con móvil y ordenador cuenta como dos aparatos, y dos aparatos idénticos (mismo modelo, versión y navegador) se verían como uno.
 
+### Aviso por Telegram
+
+Cada visita nueva manda un mensaje por Telegram con el aparato (o su nombre del informe), la página, la hora y la procedencia:
+
+- **Configuración:** el usuario crea un bot con `@BotFather` y guarda dos secretos de GitHub: `TELEGRAM_TOKEN` (el token del bot) y `TELEGRAM_CHAT_ID` (su chat con el bot, que se ve en `https://api.telegram.org/bot<token>/getUpdates` después de escribirle). Al publicar, se guardan en `telegram-config.php`, que desde internet no se puede leer. Sin los secretos, el aviso queda desactivado.
+- **Cuándo avisa:** una vez por visita, con el mismo criterio que el informe (mismo aparato y menos de 30 minutos entre páginas). No avisa de los aparatos marcados como "soy yo". Como mucho manda 10 avisos por hora, por si alguien envía avisos falsos a `registrar.php`. El estado se guarda en `datos/telegram.php`.
+- **Sin esperas:** `registrar.php` responde primero al navegador y luego escribe a Telegram, con 3 segundos como máximo. Si Telegram falla, la visita se apunta igual.
+- **Comprobación:** el informe dice si el aviso está activado y cómo fue el último envío. Si falla, muestra el motivo (por ejemplo, que el hosting no deja conectarse a otras webs), sin el token.
+- **Seguridad:** el token nunca está en el navegador ni en el repositorio, y tampoco en el artefacto de la publicación: se escribe después de guardarlo. Viaja al hosting por el FTP sin cifrar, igual que la contraseña FTP. Si se filtra, se cambia en `@BotFather` (`/revoke`) y en el secreto, y se vuelve a publicar.
+
 ## Estado
 
 Proyecto en fase inicial: la descarga y la validación de partidos ya funcionan. En los dos primeros partidos no hay errores, solo dos avisos de anotación (un cambio no anotado y una falta técnica que no aparece en el jugada a jugada). Ya se calculan las métricas básicas, de tiro, avanzadas, de quintetos y el +/-. La web ya se genera en local, con scouting de los 14 equipos. El siguiente paso es publicarla y automatizar la actualización tras cada jornada.

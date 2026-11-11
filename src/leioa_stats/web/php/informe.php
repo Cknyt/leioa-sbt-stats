@@ -10,25 +10,11 @@
 
 declare(strict_types=1);
 
-const DATA_HEADER = "<?php http_response_code(404); exit; ?>\n";
-const VISIT_GAP = 30 * 60;   // Más de 30 minutos sin actividad: empieza otra visita.
+require_once __DIR__ . '/comun.php';
+
 const ONLINE_GAP = 90;       // Activo en los últimos 90 segundos: "conectado ahora".
 const MAX_VISITS = 150;      // Visitas que se muestran en el diario.
 
-const PAGES = [
-    'index.html' => 'Resumen',
-    'jugadores.html' => 'Jugadores',
-    'comparativa.html' => 'Comparativa',
-];
-const SECTIONS = [
-    'partidos' => 'Partidos',
-    'cuartos' => 'Cuartos',
-    'origen' => 'Origen de los puntos',
-    'tiro' => 'Tiro',
-    'quintetos' => 'Quintetos',
-    'liga' => 'Liga',
-    'glosario' => 'Glosario',
-];
 const DAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 /** Lee las líneas de los archivos del diario (sin la primera, la protectora). */
@@ -74,61 +60,6 @@ function build_views(array $records): array
     }
     usort($views, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return $views;
-}
-
-/** Código corto del aparato: mismo navegador y misma pantalla, mismo código. */
-function device_key(string $userAgent, string $screen): string
-{
-    return substr(md5($userAgent . '|' . $screen), 0, 6);
-}
-
-/** Descripción legible del aparato a partir del navegador y la pantalla. */
-function describe_device(string $ua, string $screen): string
-{
-    if (preg_match('/iPhone OS (\d+)/', $ua, $m)) {
-        $system = "iPhone · iOS $m[1]";
-    } elseif (preg_match('/iPad.*OS (\d+)/', $ua, $m)) {
-        $system = "iPad · iOS $m[1]";
-    } elseif (preg_match('/Android (\d+)(?:[^;)]*;\s*([^;)]+?)(?:\sBuild[^;)]*)?\))?/', $ua, $m)) {
-        $model = isset($m[2]) && $m[2] !== 'K' ? ' ' . trim($m[2]) : '';
-        $system = "Android $m[1]$model";
-    } elseif (strpos($ua, 'Windows') !== false) {
-        $system = 'Ordenador Windows';
-    } elseif (strpos($ua, 'Macintosh') !== false) {
-        $system = 'Mac';
-    } elseif (strpos($ua, 'Linux') !== false) {
-        $system = 'Linux';
-    } else {
-        $system = 'Aparato desconocido';
-    }
-    $browsers = [
-        'Edg' => 'Edge', 'SamsungBrowser' => 'Samsung Internet', 'CriOS' => 'Chrome',
-        'FxiOS' => 'Firefox', 'Firefox' => 'Firefox', 'Chrome' => 'Chrome', 'Safari' => 'Safari',
-    ];
-    $browser = 'otro navegador';
-    foreach ($browsers as $token => $name) {
-        if (strpos($ua, $token) !== false) {
-            $browser = $name;
-            break;
-        }
-    }
-    $size = explode('@', $screen)[0];
-    return "$system · $browser · " . str_replace('x', '×', $size);
-}
-
-/** Nombre de una página (y su sección, si se abrió con #) a partir de su ruta. */
-function page_label(string $path): string
-{
-    [$path, $hash] = array_pad(explode('#', $path, 2), 2, '');
-    if (preg_match('#/partidos/(\d+)\.html$#', $path, $m)) {
-        $label = "Partido $m[1]";
-    } elseif (preg_match('#/equipos/([\w-]+)\.html$#', $path, $m)) {
-        $label = 'Equipo ' . str_replace('-', ' ', $m[1]);
-    } else {
-        $file = basename($path);
-        $label = PAGES[$file === '' || strpos($file, '.') === false ?'index.html' : $file] ?? $file;
-    }
-    return $hash !== '' ? "$label › " . (SECTIONS[$hash] ?? $hash) : $label;
 }
 
 /**
@@ -194,19 +125,25 @@ function when(int $ts): string
     return DAYS[(int) date('w', $ts)] . ' ' . date('d/m H:i', $ts);
 }
 
+/** Estado del aviso por Telegram: si está activado y cómo fue el último envío. */
+function telegram_status(bool $configured, array $state): string
+{
+    if (!$configured) {
+        return 'Aviso por Telegram desactivado: faltan los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID.';
+    }
+    $last = $state['last'] ?? null;
+    if (!is_array($last)) {
+        return 'Aviso por Telegram activado, todavía sin envíos.';
+    }
+    if ($last['result'] === 'ok') {
+        return 'Aviso por Telegram: último envío correcto, ' . when($last['ts']) . '.';
+    }
+    return 'Aviso por Telegram: falló el último envío, ' . when($last['ts']) . " ({$last['result']}).";
+}
+
 function e(string $text): string
 {
     return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-}
-
-/** Nombres que el usuario pone a sus aparatos, guardados con la misma protección. */
-function read_names(string $file): array
-{
-    if (!file_exists($file)) {
-        return [];
-    }
-    $lines = file($file, FILE_IGNORE_NEW_LINES);
-    return json_decode($lines[1] ?? '{}', true) ?: [];
 }
 
 function save_names(string $file, array $names): void
@@ -235,7 +172,7 @@ if ($password !== '' && !$allowed) {
 }
 
 if ($allowed && isset($_POST['nombres']) && is_array($_POST['nombres'])) {
-    $names = read_names($namesFile);
+    $names = read_data($namesFile);
     foreach ($_POST['nombres'] as $key => $name) {
         if (is_string($key) && preg_match('/^[0-9a-f]{6}$/', $key) && is_string($name)) {
             // Hasta 40 caracteres. Con preg y no con mb_substr, que no todos los hostings tienen.
@@ -291,7 +228,7 @@ if ($allowed && isset($_POST['nombres']) && is_array($_POST['nombres'])) {
     $views = build_views(read_records($dataDir));
     $visits = build_visits($views);
     $devices = build_devices($views, $visits);
-    $names = read_names($namesFile);
+    $names = read_data($namesFile);
     $isMe = fn(string $key) => $names[$key]['me'] ?? false;
     $nameOf = fn(string $key) => ($names[$key]['name'] ?? '') !== '' ? $names[$key]['name'] : $devices[$key]['label'];
     $others = array_values(array_filter($visits, fn($v) => !$isMe($v['device'])));
@@ -314,6 +251,7 @@ if ($allowed && isset($_POST['nombres']) && is_array($_POST['nombres'])) {
       <div class="tile"><b><?= $deviceCount($lastDays(30)) ?></b>aparatos en 30 días</div>
       <div class="tile"><b><?= duration(array_sum(array_column($lastDays(30), 'seconds'))) ?></b>de lectura en 30 días</div>
     </div>
+    <p class="muted"><?= e(telegram_status(file_exists(__DIR__ . '/telegram-config.php'), read_data("$dataDir/telegram.php"))) ?></p>
   </section>
 
   <section>

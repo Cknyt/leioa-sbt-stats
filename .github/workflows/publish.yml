@@ -24,6 +24,7 @@ jobs:
     env:
       HAS_FTP: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' && vars.FTP_SERVER_DIR != '' }}
       HAS_REPORT_KEY: ${{ secrets.INFORME_CLAVE != '' }}
+      HAS_TELEGRAM: ${{ secrets.TELEGRAM_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +70,22 @@ jobs:
           name: web
           path: site/
           retention-days: 14
+
+      # Aviso por Telegram de cada visita nueva: registrar.php lee el token y el chat de
+      # telegram-config.php. Aquí no sirve una huella como la de la contraseña del informe: para
+      # escribir a Telegram hace falta el token tal cual. El archivo es PHP, así que desde
+      # internet no se puede leer. Sin los dos secretos no se crea y el aviso queda desactivado.
+      # Va después de guardar el artefacto para que el token no quede en él.
+      - name: Configuración del aviso por Telegram
+        if: env.HAS_TELEGRAM == 'true'
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          php -r '
+            $config = ["token" => trim(getenv("TELEGRAM_TOKEN")), "chat" => trim(getenv("TELEGRAM_CHAT_ID"))];
+            file_put_contents("site/telegram-config.php", "<?php return " . var_export($config, true) . ";" . PHP_EOL);
+          '
 
       - name: Subir al hosting
         if: env.HAS_FTP == 'true'
