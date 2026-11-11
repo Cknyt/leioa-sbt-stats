@@ -157,3 +157,114 @@ def test_visits_group_pages_of_the_same_device():
 
 def test_duration():
     assert report("[duration(45), duration(150), duration(4000)]") == ["45 s", "2 min", "1 h 6 min"]
+
+
+# Aviso por Telegram (registrar.php). El envío en sí no se prueba: necesitaría internet y un bot.
+
+START = {
+    "ts": NOW,
+    "v": "abc123xyz",
+    "t": "start",
+    "p": "/leioa/index.html#quintetos",
+    "r": "",
+    "w": "390x844@3",
+    "ua": UA,
+}
+
+
+def php_value(code: str):
+    return json.loads(run_php(f"echo json_encode({code});"))
+
+
+def php_json(value) -> str:
+    """Valor de Python escrito como expresión de PHP (un array asociativo)."""
+    return f"json_decode({json.dumps(json.dumps(value))}, true)"
+
+
+def test_alert_text_describes_the_visit():
+    text = php_value(f"alert_text({php_json(START | {'r': 'web.whatsapp.com'})}, [])")
+    assert text.splitlines() == [
+        "Nueva visita a la web del Leioa",
+        "iPhone · iOS 18 · Safari · 390×844",
+        f"Resumen › Quintetos · {time_of(NOW)}",
+        "Llega desde web.whatsapp.com",
+    ]
+
+
+def time_of(ts: int) -> str:
+    return run_php(f"echo date('H:i', {ts});")
+
+
+def test_alert_text_uses_the_name_and_skips_my_devices():
+    key = php_value(f"device_key({json.dumps(UA)}, '390x844@3')")
+    named = php_value(f"alert_text({php_json(START)}, {php_json({key: {'name': 'Mister'}})})")
+    assert named.splitlines()[1] == "Mister (iPhone · iOS 18 · Safari · 390×844)"
+    mine = php_json({key: {"name": "Yo", "me": True}})
+    assert php_value(f"alert_text({php_json(START)}, {mine})") is None
+
+
+def decide(state: dict, device: str, now: int) -> tuple[bool, dict]:
+    alert, new_state = php_value(f"alert_decision({php_json(state)}, '{device}', {now})")
+    return alert, new_state
+
+
+def test_one_alert_per_visit():
+    alert, state = decide({}, "aaaaaa", NOW)
+    assert alert
+    # Otra página 10 minutos después: misma visita, sin aviso.
+    alert, state = decide(state, "aaaaaa", NOW + 600)
+    assert not alert
+    # 25 minutos después de esa página: sigue siendo la misma visita.
+    alert, state = decide(state, "aaaaaa", NOW + 600 + 1500)
+    assert not alert
+    # Más de 30 minutos sin páginas: visita nueva.
+    alert, state = decide(state, "aaaaaa", NOW + 600 + 1500 + 1801)
+    assert alert
+    # Otro aparato a la vez: su propio aviso.
+    assert decide(state, "bbbbbb", NOW + 600 + 1500 + 1802)[0]
+
+
+def test_alerts_per_hour_are_limited():
+    state: dict = {}
+    alerts = []
+    for i in range(12):
+        alert, state = decide(state, f"{i:06d}", NOW + i)
+        alerts.append(alert)
+    assert alerts == [True] * 10 + [False] * 2
+    # Una hora después del primero vuelve a haber hueco.
+    assert decide(state, "nuevo1", NOW + 3600)[0]
+
+
+def test_alert_state_is_saved_protected(tmp_path):
+    file = json.dumps(str(tmp_path / "telegram.php"))
+    change = "fn($s) => alert_decision($s, 'aaaaaa', " + str(NOW) + ")"
+    assert php_value(f"update_alert_state({file}, {change})") is True
+    assert php_value(f"update_alert_state({file}, {change})") is False
+    lines = (tmp_path / "telegram.php").read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "<?php http_response_code(404); exit; ?>"
+    assert json.loads(lines[1]) == {"devices": {"aaaaaa": NOW}, "sent": [NOW]}
+
+
+@pytest.mark.parametrize(
+    ("configured", "state", "expected"),
+    [
+        (False, {}, "desactivado"),
+        (True, {}, "todavía sin envíos"),
+        (True, {"last": {"ts": NOW, "result": "ok"}}, "último envío correcto"),
+        (
+            True,
+            {"last": {"ts": NOW, "result": "error 400 chat not found"}},
+            "(error 400 chat not found)",
+        ),
+    ],
+)
+def test_telegram_status(configured, state, expected):
+    flag = "true" if configured else "false"
+    assert expected in report(f"telegram_status({flag}, {php_json(state)})")
+
+
+def test_send_errors_never_show_the_token():
+    # Sin conexión (o sin HTTPS en el PHP local), el error de PHP repite la dirección con el token.
+    result = run_php("echo send_telegram('123:secreto', '42', 'hola');")
+    assert result.startswith("error")
+    assert "secreto" not in result

@@ -174,6 +174,7 @@ def test_pages_load_visit_log(site):
     assert (out / "visits.js").exists()
     assert (out / "registrar.php").exists()
     assert (out / "informe.php").exists()
+    assert (out / "comun.php").exists()
     index = (out / "index.html").read_text(encoding="utf-8")
     assert 'src="visits.js" data-endpoint="registrar.php"' in index
     match = (out / "partidos" / "99138.html").read_text(encoding="utf-8")

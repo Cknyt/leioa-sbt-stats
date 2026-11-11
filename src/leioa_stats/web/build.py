@@ -591,8 +591,9 @@ def build_site(
     (out_dir / "equipos").mkdir()
     for static_file in ("style.css", "glossary.js", "players.js", "comparison.js", "visits.js"):
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
-    # Diario de visitas: receptor e informe privado. Se ejecutan en el hosting, que admite PHP.
-    for php_file in ("registrar.php", "informe.php"):
+    # Diario de visitas: receptor (con el aviso por Telegram), informe privado y sus piezas
+    # comunes. Se ejecutan en el hosting, que admite PHP.
+    for php_file in ("registrar.php", "informe.php", "comun.php"):
         shutil.copy(HERE / "php" / php_file, out_dir / php_file)
 
     pages: list[Path] = []
