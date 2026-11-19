@@ -25,7 +25,7 @@ from leioa_stats.metrics.advanced import (
     team_games,
 )
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
-from leioa_stats.metrics.insights import match_insights, team_insights
+from leioa_stats.metrics.insights import PLAYER_MIN_MINUTES, match_insights, team_insights
 from leioa_stats.metrics.league import (
     COMPARISON,
     league_average,
@@ -69,8 +69,9 @@ KPIS = [
 ]
 # Jugadores con mapa de tiros propio en la página de cada equipo (los que más tiran).
 TOP_SHOOTERS = 6
-# Página de jugadores: tarjeta propia solo con minutos suficientes para que las cifras digan algo.
-MIN_MINUTES_FOR_CARD = 10
+# Página de jugadores: todos los que han jugado tienen tarjeta, pero por debajo de estos minutos
+# por partido sus cifras dicen poco y la tarjeta se marca en gris, sin el on/off.
+FEW_MINUTES_PER_GAME = 10
 # Escala de las barras de las tarjetas (el valor que llena la barra entera).
 TS_SCALE, USAGE_SCALE = 80, 40
 AVERAGE_USAGE = 20  # por definición: 5 jugadores se reparten el 100 % de las jugadas
@@ -357,15 +358,22 @@ def players_page(tables, stints, team_name) -> dict:
     )
     on_off = player_on_off(stints)
     team_ts = team_season(tables["teams"], team_name).loc[team_name, "TS%"]
-    cards, few_minutes = [], []
+    cards, not_played = [], []
     for player, row in season.sort_values("MIN/PJ", ascending=False).iterrows():
-        if row["MIN/PJ"] < MIN_MINUTES_FOR_CARD:
-            few_minutes.append(f"{display_name(player)} ({number(row['MIN/PJ'])} min/PJ)")
+        # Convocado sin llegar a jugar: no hay cifras que enseñar.
+        if row["PJ"] == 0:
+            not_played.append(display_name(player))
             continue
-        diff = on_off["DIFERENCIA"].get(player)
+        # Mismo doble criterio que las conclusiones: pocos minutos por partido o en total
+        # (quien ha jugado un solo partido largo tampoco tiene muestra).
+        few = row["MIN/PJ"] < FEW_MINUTES_PER_GAME or row["MIN"] < PLAYER_MIN_MINUTES
+        # Con pocos minutos, el on/off es puro ruido: no se muestra.
+        diff = None if few else on_off["DIFERENCIA"].get(player)
         cards.append(
             {
                 "name": display_name(player),
+                "few": few,
+                "total_min": int(row["MIN"]),
                 "games": int(row["PJ"]),
                 "sort": {
                     "min": row["MIN/PJ"],
@@ -390,8 +398,9 @@ def players_page(tables, stints, team_name) -> dict:
     full.index = [display_name(p) for p in full.index]
     return {
         "cards": cards,
-        "few_minutes": few_minutes,
-        "min_minutes": MIN_MINUTES_FOR_CARD,
+        "not_played": not_played,
+        "min_minutes": FEW_MINUTES_PER_GAME,
+        "min_total": PLAYER_MIN_MINUTES,
         "team_ts": number(team_ts),
         "ts_mark": _bar(team_ts, TS_SCALE),
         "average_usage": AVERAGE_USAGE,
