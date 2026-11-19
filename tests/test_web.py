@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from leioa_stats import parse
 from leioa_stats.metrics import league
 from leioa_stats.web import build, charts
 
@@ -110,10 +111,17 @@ def test_players_page(site):
     out, _ = site
     html = (out / "jugadores.html").read_text(encoding="utf-8")
     assert 'aria-current="page">Jugadores' in html
-    # Tarjeta propia solo con minutos suficientes; los demás, en una línea aparte.
-    cards = html.count('<article class="player"')
-    assert 0 < cards < 13
-    assert f"Con menos de {build.MIN_MINUTES_FOR_CARD} minutos por partido" in html
+    # Todos los que han jugado tienen tarjeta; los de pocos minutos, en gris y sin on/off.
+    players = parse.build_tables(out.parent / "raw")["players"]
+    played = players[(players["team"] == "LEIOA SBT") & (players["MIN"] > 0)]
+    assert html.count('<article class="player') == played["player"].nunique()
+    few_cards = html.split('<article class="player few"')[1:]
+    assert few_cards
+    for card in few_cards:
+        card = card.split("</article>")[0]
+        assert "Pocos minutos" in card
+        assert "En pista vs. banquillo" not in card
+    assert html.count('data-few="1"') == len(few_cards)
     assert "Iñigo Carneros Villar" in html
     # Cada tarjeta lleva los valores con los que players.js la ordena.
     assert 'data-ts=""' not in html

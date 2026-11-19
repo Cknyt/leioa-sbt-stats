@@ -341,6 +341,11 @@ table.compare td.better { background: #eaf5dc; color: var(--primary); font-weigh
 }
 .player footer b { color: var(--text); }
 .player footer a { font-weight: 600; font-size: 0.9rem; padding: 10px 0; }
+/* Pocos minutos: tarjeta en gris para que no se lea igual que la de un habitual. */
+.player.few { background: var(--bg); border-style: dashed; }
+.player.few .player-stats strong { color: var(--muted); }
+.player.few .bar.marked > span { background: var(--slate); opacity: 0.5; }
+.few-note { flex-basis: 100%; margin: 4px 0 0; color: var(--warn); font-size: 0.8rem; font-weight: 600; }
 .table-summary { cursor: pointer; font-weight: 700; color: var(--primary); min-height: 32px; }
 
 /* Conclusiones automáticas. */

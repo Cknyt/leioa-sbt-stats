@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <h1>Jugadores</h1>
-    <p class="hint">Los que juegan {{ min_minutes }} minutos o más por partido. La raya negra de cada barra marca la media del equipo.</p>
+    <p class="hint">Todos los que han jugado. En gris, los que juegan menos de {{ min_minutes }} minutos por partido o llevan menos de {{ min_total }} en total: sus cifras salen de muy pocas jugadas. La raya negra de cada barra marca la media del equipo.</p>
   </div>
   <div class="sorter" role="group" aria-label="Ordenar por" hidden>
     <span>Ordenar por</span>
@@ -20,10 +20,11 @@
 
 <div class="player-cards">
 {% for c in cards %}
-  <article class="player" data-min="{{ c.sort.min }}" data-pts="{{ c.sort.pts }}" data-ts="{{ c.sort.ts }}" data-uso="{{ c.sort.uso }}">
+  <article class="player{{ ' few' if c.few }}" data-few="{{ 1 if c.few else 0 }}" data-min="{{ c.sort.min }}" data-pts="{{ c.sort.pts }}" data-ts="{{ c.sort.ts }}" data-uso="{{ c.sort.uso }}">
     <header>
       <h2>{{ c.name }}</h2>
       <span>{{ c.games }} PJ · {{ c.min }} min</span>
+      {% if c.few %}<p class="few-note">Pocos minutos ({{ c.total_min }} en total): cifras poco fiables.</p>{% endif %}
     </header>
     <div class="player-stats">
       <div><strong>{{ c.pts }}</strong><span>puntos</span></div>
@@ -52,8 +53,8 @@
   </article>
 {% endfor %}
 </div>
-{% if few_minutes %}
-<p class="hint">Con menos de {{ min_minutes }} minutos por partido: {{ few_minutes | join(", ") }}.</p>
+{% if not_played %}
+<p class="hint">Convocados sin llegar a jugar: {{ not_played | join(", ") }}.</p>
 {% endif %}
 
 <section>

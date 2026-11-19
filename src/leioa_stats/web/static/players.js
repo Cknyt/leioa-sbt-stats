@@ -11,7 +11,10 @@
   function sortBy(key) {
     var cards = Array.prototype.slice.call(list.children);
     cards.sort(function (a, b) {
-      return parseFloat(b.dataset[key]) - parseFloat(a.dataset[key]);
+      // Las tarjetas de pocos minutos van siempre al final: con 3 tiros, un 100 % de acierto
+      // no debe ponerse por delante de los habituales.
+      return (a.dataset.few - b.dataset.few) ||
+        parseFloat(b.dataset[key]) - parseFloat(a.dataset[key]);
     });
     cards.forEach(function (card) { list.appendChild(card); });
     buttons.forEach(function (button) {
