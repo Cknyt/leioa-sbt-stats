@@ -52,6 +52,11 @@ jobs:
       - name: Descargar partidos
         run: uv run python -m leioa_stats.download
 
+      # Temporadas pasadas (historial de cada jugador): se descargan una vez y quedan en la
+      # caché de data/raw, así que en las siguientes publicaciones no se pide nada.
+      - name: Descargar temporadas pasadas
+        run: uv run python -m leioa_stats.history
+
       - name: Validar datos
         run: uv run python -m leioa_stats.validate | tail -n 1
 

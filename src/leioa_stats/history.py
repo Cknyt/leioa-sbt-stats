@@ -1,13 +1,15 @@
 """Temporadas pasadas: descarga e historial de tiro de cada jugador.
 
 Uso:
-    uv run python -m leioa_stats.history <id del grupo>
+    uv run python -m leioa_stats.history            (las temporadas de HISTORY_GROUPS)
+    uv run python -m leioa_stats.history <id> ...   (otras)
 
 El id del grupo es el número de la dirección de la competición en basketbasko.com
-(https://basketbasko.com/es/group/?id=<id>). Cada temporada tiene el suyo. Se descarga una
-sola vez, con la misma pausa entre peticiones que la temporada actual, en
-data/raw/history/<id>/, con la misma estructura que data/raw (así parse.build_tables sirve
-igual). Si ya está descargado, no se vuelve a pedir.
+(https://basketbasko.com/es/group/?id=<id>). Cada temporada tiene el suyo: el de la "1ª
+Mas-Liga Regular - Único" de cada año va en HISTORY_GROUPS. Se descarga una sola vez, con la
+misma pausa entre peticiones que la temporada actual, en data/raw/history/<id>/, con la misma
+estructura que data/raw (así parse.build_tables sirve igual). Una temporada ya descargada
+entera (con su matches.json) no se vuelve a pedir.
 
 Para qué sirve:
 - Historial de tiro: el acierto de un jugador la temporada pasada predice mejor su acierto de
@@ -28,11 +30,15 @@ from leioa_stats.download import Downloader, download_match, fetch_league
 from leioa_stats.parse import build_tables
 
 HISTORY_DIR = Path("data/raw/history")
+# 1ª Mas-Liga Regular - Único: 2025-26 y 2024-25.
+HISTORY_GROUPS = [2511, 2138]
 
 
 def download_season(group_id: int, history_dir: Path = HISTORY_DIR) -> Path:
     """Descarga todos los partidos jugados de una temporada pasada. Devuelve su carpeta."""
     raw_dir = history_dir / str(group_id)
+    if (raw_dir / "matches.json").exists():
+        return raw_dir
     downloader = Downloader()
     # El nombre del equipo solo sirve para los próximos partidos, que aquí no hay.
     matches, _ = fetch_league(downloader, group_id, team_name="")
@@ -70,11 +76,12 @@ def shooting_history(past: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    if len(sys.argv) != 2 or not sys.argv[1].isdigit():
-        sys.exit("Uso: uv run python -m leioa_stats.history <id del grupo de basketbasko.com>")
-    folder = download_season(int(sys.argv[1]))
-    matches = json.loads((folder / "matches.json").read_text(encoding="utf-8"))
-    print(f"{len(matches)} partidos en {folder}")
+    if not all(arg.isdigit() for arg in sys.argv[1:]):
+        sys.exit("Uso: uv run python -m leioa_stats.history [id del grupo de basketbasko.com ...]")
+    for group_id in [int(arg) for arg in sys.argv[1:]] or HISTORY_GROUPS:
+        folder = download_season(group_id)
+        matches = json.loads((folder / "matches.json").read_text(encoding="utf-8"))
+        print(f"{len(matches)} partidos en {folder}")
 
 
 if __name__ == "__main__":
