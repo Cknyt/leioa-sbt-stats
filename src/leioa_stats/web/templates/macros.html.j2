@@ -1,0 +1,21 @@
+{# Piezas comunes de las páginas.
+
+fold: sección plegable. Lo que se usa a menudo va abierto (open=True); el resto, plegado,
+para que la página no ocupe 15 pantallas en el móvil. page.js abre la sección si se llega a
+ella con un enlace (#id) o desde el índice de la página.
+
+how: explicación de cómo se calcula algo, plegada bajo "Cómo se calcula". #}
+{% macro fold(id, title, open=False, extra_class="") -%}
+<section class="fold {{ extra_class }}" id="{{ id }}">
+  <details{% if open %} open{% endif %}>
+    <summary><h2>{{ title }}</h2></summary>
+    <div class="fold-body">
+    {{ caller() }}
+    </div>
+  </details>
+</section>
+{%- endmacro %}
+
+{% macro how(text, title="Cómo se calcula") -%}
+<details class="how"><summary>{{ title }}</summary><p>{{ text }}</p></details>
+{%- endmacro %}

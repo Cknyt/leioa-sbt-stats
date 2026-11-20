@@ -1,4 +1,5 @@
 {% extends "base.html.j2" %}
+{% from "macros.html.j2" import fold, how %}
 {% block title %}Temporada{% endblock %}
 {% block content %}
 <div class="overview">
@@ -12,9 +13,6 @@
         {% for g in games %}<span class="badge {{ 'win' if g.won else 'loss' }}" title="Jornada {{ g.match.round }}">{{ 'V' if g.won else 'D' }}</span>{% endfor %}
       </p>
     </div>
-    {% if n_games < 8 %}
-    <p class="note">Solo hay {{ n_games }} partidos: las cifras describen lo que ha pasado, pero todavía no permiten sacar conclusiones (sobre todo las de quintetos y on/off).</p>
-    {% endif %}
   </section>
 
   {% if next_match %}
@@ -40,49 +38,30 @@
   </div>
   {% endfor %}
 </div>
-<p class="hint">Puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor; en ritmo, el más rápido).</p>
 
 <section class="plain" id="partidos">
-  <h2>Partidos</h2>
+  <h2>Últimos partidos</h2>
   <div class="game-grid">
-  {% for g in games %}
-    <a class="game" href="partidos/{{ g.match.id }}.html" aria-label="Jornada {{ g.match.round }}: {{ g.title }}">
-      <span class="game-meta"><span>Jornada {{ g.match.round }} · {{ g.date }}</span>{% if g.issues %}<span class="warn">{{ g.issues }} aviso{{ 's' if g.issues > 1 }} en los datos</span>{% endif %}</span>
-      <span class="game-score">
-        <span class="badge big {{ 'win' if g.won else 'loss' }}">{{ 'V' if g.won else 'D' }}</span>
-        <span class="game-teams">
-          <span class="{{ 'own' if g.own_home }}"><span>{{ g.home }}</span><b>{{ g.match.local_score }}</b></span>
-          <span class="{{ 'own' if not g.own_home }}"><span>{{ g.away }}</span><b>{{ g.match.visitor_score }}</b></span>
-        </span>
-      </span>
-      <span class="game-stats">
-        <span data-term="Ritmo">Ritmo <b>{{ g.pace }}</b></span>
-        <span data-term="ORtg">ORtg <b>{{ g.ortg }}</b></span>
-        <span data-term="DRtg">DRtg <b>{{ g.drtg }}</b></span>
-        <span data-term="Neto">Neto <b>{{ g.net }}</b></span>
-      </span>
-    </a>
-  {% endfor %}
+  {% for g in games[-3:] | reverse %}{% include "game_card.html.j2" %}{% endfor %}
   </div>
+  {% if games | length > 3 %}<p class="back"><a href="partidos.html">Ver los {{ games | length }} partidos →</a></p>{% endif %}
 </section>
 
 {% with ideas_title = "Lo que pueden plantearnos los rivales" %}
 {% include "insights.html.j2" %}
 {% endwith %}
 
-<section>
-  <h2>Equipo frente a sus rivales</h2>
+{% call fold("rivales", "Equipo frente a sus rivales") %}
   <p class="hint">Medias por partido y porcentajes de tiro. "Rivales" es lo que han hecho los rivales contra {{ team_name }}.</p>
   <div class="table-wrap">{{ team | safe }}</div>
   <h3>Ritmo, eficiencia y Four Factors</h3>
   <p class="hint">En la columna de rivales: lo que permite la defensa.</p>
   <div class="table-wrap">{{ advanced | safe }}</div>
-</section>
+{% endcall %}
 
 {% with subject = team_name %}{% include "quarters_origins.html.j2" %}{% endwith %}
 
-<section id="tiro">
-  <h2>De dónde salen los tiros</h2>
+{% call fold("tiro", "De dónde salen los tiros") %}
   <p class="hint">La barra es el % de los tiros de campo que salen de cada zona; la cifra, el acierto.</p>
   <div class="zone-bars">
   {% for z in zone_bars %}
@@ -99,44 +78,24 @@
   <div class="table-wrap">{{ zones | safe }}</div>
   <h3>Por zonas, rivales</h3>
   <div class="table-wrap">{{ zones_rivals | safe }}</div>
-</section>
+{% endcall %}
 
-<section>
-  <h2>+/- y on/off</h2>
-  <p class="hint">Neto = diferencia de puntos por 100 posesiones. "En banquillo" es el neto del equipo mientras el jugador no está en pista. Minutos según el reloj del jugada a jugada.</p>
+{% call fold("onoff", "+/- y on/off") %}
+  <p class="hint">Neto = diferencia de puntos por 100 posesiones, con el jugador en pista y en el banquillo. Vacío con menos de 100 posesiones: con tan pocas es casi puro ruido.</p>
   <div class="table-wrap">{{ on_off | safe }}</div>
-</section>
+{% endcall %}
 
-<section id="quintetos">
-  <h2>Quintetos</h2>
-  <p class="hint">Los 10 con más minutos, por dorsales.</p>
+{% call fold("quintetos", "Quintetos, parejas y tríos") %}
+  <p class="hint">Los 10 quintetos con más minutos, por dorsales.</p>
   <div class="table-wrap">{{ lineups | safe }}</div>
   {% if lineups_incomplete %}<p class="note">{{ lineups_incomplete }} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan.</p>{% endif %}
   <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
   <h3>Parejas</h3>
-  <p class="hint">Todos los minutos en los que coinciden en pista, con cualquier compañero: llegan antes que los quintetos a las 100 posesiones necesarias para dar la eficiencia. Sin los minutos de la basura ({{ garbage }} min: último cuarto con 20 puntos o más de diferencia).</p>
+  {{ how("Todos los minutos en los que coinciden en pista, con cualquier compañero: llegan antes que los quintetos a las 100 posesiones necesarias para dar la eficiencia. Sin los minutos de la basura (" ~ garbage ~ " min: último cuarto con 20 puntos o más de diferencia).") }}
   <div class="table-wrap">{{ pairs | safe }}</div>
   <h3>Tríos</h3>
   <div class="table-wrap">{{ trios | safe }}</div>
-</section>
-
-<section id="liga">
-  <h2>Liga</h2>
-  <p class="hint">Los {{ league_rows | length }} equipos con {{ n_league_games }} partidos jugados. Pulsa en un equipo para ver su informe de scouting. "NETO aj." corrige el neto por la calidad de los rivales y por haber jugado más en casa o fuera. "Forma": flecha si los 3 últimos partidos se alejan claramente de los anteriores (1,5 errores estándar).</p>
-  <div class="table-wrap">
-    <table class="data">
-      <thead><tr><th>Equipo</th>{% for c in league_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
-      <tbody>
-      {% for row in league_rows %}
-        <tr class="{{ 'own' if row.own }}{{ ' next' if row.next }}">
-          <th><a href="equipos/{{ row.slug }}.html">{{ row.name }}</a>{% if row.next %} <span class="tag">próximo rival</span>{% endif %}</th>
-          {% for v in row['values'] %}<td>{{ v }}</td>{% endfor %}
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+{% endcall %}
 
 {% include "glossary.html.j2" %}
 {% endblock %}

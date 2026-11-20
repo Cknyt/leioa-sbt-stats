@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <h1>Jugadores</h1>
-    <p class="hint">Todos los que han jugado. En gris, los que juegan menos de {{ min_minutes }} minutos por partido o llevan menos de {{ min_total }} en total: sus cifras salen de muy pocas jugadas. La raya negra de cada barra marca la media del equipo.</p>
+    <p class="hint">En gris, los que juegan menos de {{ min_minutes }} minutos por partido o llevan menos de {{ min_total }} en total: sus cifras dicen poco. La raya negra marca la media del equipo.</p>
   </div>
   <div class="sorter" role="group" aria-label="Ordenar por" hidden>
     <span>Ordenar por</span>
@@ -14,9 +14,6 @@
     <button type="button" data-sort="uso" aria-pressed="false">Uso</button>
   </div>
 </div>
-{% if n_games < 8 %}
-<p class="note">Solo hay {{ n_games }} partidos: con tan pocos, un buen o mal día de tiro cambia mucho las cifras de cada jugador.</p>
-{% endif %}
 
 <div class="player-cards">
 {% for c in cards %}

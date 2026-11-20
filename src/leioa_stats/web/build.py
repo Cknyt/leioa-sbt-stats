@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from plotly.offline import get_plotlyjs_version
+from plotly.offline import get_plotlyjs
 
 from leioa_stats import ai_report
 from leioa_stats.download import TEAM_NAME, involves
-from leioa_stats.format import display_name, number
+from leioa_stats.format import display_name, number, short_labels, short_name
 from leioa_stats.history import past_players, shooting_history
 from leioa_stats.metrics.adjusted import adjusted_ratings, forecast, recent_form
 from leioa_stats.metrics.advanced import (
@@ -186,7 +186,7 @@ def box_score(players: pd.DataFrame, on_off: pd.DataFrame | None = None) -> pd.D
     else:
         columns = [c for c in BOX_COLUMNS if c != "+/-"]
     df = df.sort_values("MIN", ascending=False)[columns]
-    df.index = [display_name(p) for p in df.index]
+    df.index = short_labels(df.index)
     return df
 
 
@@ -329,9 +329,7 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
 
 def combo_table(stints, size: int) -> str:
     combos = combination_summary(stints, size).head(TOP_COMBOS)
-    combos.index = [
-        " · ".join(display_name(p) for p in combo.split(" | ")) for combo in combos.index
-    ]
+    combos.index = [" · ".join(short_name(p) for p in combo.split(" | ")) for combo in combos.index]
     title = "Pareja" if size == 2 else "Trío"
     return table(combos[COMBO_COLUMNS], title)
 
@@ -371,7 +369,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
     )
     insights = insights_for(team_name, tables, league, league_average(tables["teams"]), full_season)
     on_off = player_on_off(stints)
-    on_off.index = [display_name(p) for p in on_off.index]
+    on_off.index = short_labels(on_off.index)
     advanced = team_advanced(tables["teams"], team_name)
     advanced.columns = [display_name(c) for c in advanced.columns]
 
@@ -510,7 +508,7 @@ def players_page(tables, stints, team_name) -> dict:
             }
         )
     full = season[PLAYER_COLUMNS]
-    full.index = [display_name(p) for p in full.index]
+    full.index = short_labels(full.index)
     return {
         "cards": cards,
         "not_played": not_played,
@@ -604,12 +602,6 @@ def comparison_page(tables, team_name, upcoming) -> dict:
 TURNOVER_COLUMNS = ["Con robo", "Falta en ataque", "Otras", "% con robo"]
 
 
-def short_name(name: str) -> str:
-    """'IÑIGO CARNEROS VILLAR' -> 'I. Carneros'."""
-    parts = display_name(name).split()
-    return f"{parts[0][0]}. {parts[1]}" if len(parts) > 1 else display_name(name)
-
-
 def _percent_list(values: pd.Series) -> str:
     return ", ".join(f"{display_name(p)} ({number(round(100 * v))} %)" for p, v in values.items())
 
@@ -622,7 +614,7 @@ def rotation_section(team_name, tables, stints) -> dict:
     # Etiquetas cortas para que el mapa quepa en el móvil: dorsal, inicial y primer apellido.
     names = [f"{numbers.get(p, '')} · {short_name(p)}" for p in shares.index]
     available = availability(players, team_name)
-    available.index = [display_name(p) for p in available.index]
+    available.index = short_labels(available.index)
     starts = starters(players, team_name)
     return {
         "availability": table(available, "Jugador"),
@@ -648,12 +640,12 @@ def ball_section(team_name, tables) -> dict:
     ).T.round(1)
     links = connections(tables["baskets"], team_name)
     for column in ("Pasa", "Anota"):
-        links[column] = links[column].map(display_name)
+        links[column] = links[column].map(short_name)
     conceded = tables["shots"][tables["shots"]["opponent"] == team_name]
     trouble = foul_trouble(tables["fouls"], tables["players"], team_name, PLAYER_MIN_MINUTES)
-    trouble.index = [display_name(p) for p in trouble.index]
+    trouble.index = short_labels(trouble.index)
     clutch = clutch_summary(tables["clutch"], team_name)
-    clutch.index = [display_name(p) for p in clutch.index]
+    clutch.index = short_labels(clutch.index)
     wins, losses = clutch_record(tables["clutch_games"], team_name)
     return {
         "clutch": table(clutch, "Jugador") if not clutch.empty else "",
@@ -710,7 +702,7 @@ def preview_page(rival, tables, stints, league, average, team_name, upcoming, st
             "Perfil": key["Perfil"].to_numpy(),
             "Último partido": ["Sí" if p in present else "No" for p in key.index],
         },
-        index=[display_name(p) for p in key.index],
+        index=short_labels(key.index),
     )
     match = next(
         (m for m in upcoming if rival in (m["local"], m["visitor"])),
@@ -834,7 +826,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
             }
         )
     season = season[SCOUTING_COLUMNS]
-    season.index = [display_name(p) for p in season.index]
+    season.index = short_labels(season.index)
     results = []
     for match, _, _ in all_matches:
         if not involves(match, team_name):
@@ -922,7 +914,7 @@ def build_site(
         "next_preview": f"previas/{slug(next_rival)}.html" if next_rival else None,
         "team_name": display_name(team_name),
         "own_slug": slug(team_name),
-        "plotly_url": f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js",
+        "last_round": max((m["round"] for m, _, _ in own_matches), default=0),
         "generated": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "n_games": len(own_matches),
         "n_league_games": len(all_matches),
@@ -935,8 +927,20 @@ def build_site(
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
     (out_dir / "previas").mkdir()
-    for static_file in ("style.css", "glossary.js", "players.js", "comparison.js", "visits.js"):
+    static_files = (
+        "style.css",
+        "glossary.js",
+        "players.js",
+        "comparison.js",
+        "visits.js",
+        "page.js",
+    )
+    for static_file in static_files:
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
+    # Fuentes y librería de gráficos desde el propio hosting: sin peticiones a Google ni a la
+    # web de plotly, que verían la IP de quien visita la web.
+    shutil.copytree(HERE / "static" / "fonts", out_dir / "fonts")
+    (out_dir / "plotly.min.js").write_text(get_plotlyjs(), encoding="utf-8")
     # Diario de visitas: receptor (con el aviso por Telegram), informe privado y sus piezas
     # comunes. Se ejecutan en el hosting, que admite PHP.
     for php_file in ("registrar.php", "informe.php", "comun.php"):
@@ -949,13 +953,10 @@ def build_site(
         path.write_text(html, encoding="utf-8")
         pages.append(path)
 
-    render(
-        out_dir / "index.html",
-        "season.html.j2",
-        "",
-        active="season",
-        **season_page(own_matches, tables, stints[team_name], team_name, upcoming),
-    )
+    season = season_page(own_matches, tables, stints[team_name], team_name, upcoming)
+    render(out_dir / "index.html", "season.html.j2", "", active="season", charts=True, **season)
+    render(out_dir / "partidos.html", "games.html.j2", "", active="games", **season)
+    render(out_dir / "liga.html", "league.html.j2", "", active="league", **season)
     render(
         out_dir / "jugadores.html",
         "players.html.j2",
@@ -967,7 +968,7 @@ def build_site(
         out_dir / "comparativa.html",
         "comparison.html.j2",
         "",
-        active="comparison",
+        active="league",
         **comparison_page(tables, team_name, upcoming),
     )
     for match, stats, moves in own_matches:
@@ -975,6 +976,8 @@ def build_site(
             out_dir / "partidos" / f"{match['id']}.html",
             "match.html.j2",
             "../",
+            active="games",
+            charts=True,
             **match_page(match, stats, moves, tables, stints[team_name], team_name),
         )
     staff = load_staff()
@@ -1003,6 +1006,8 @@ def build_site(
             out_dir / "equipos" / f"{slug(team)}.html",
             "team.html.j2",
             "../",
+            active="league",
+            charts=True,
             **team_page(team, all_matches, tables, stints[team], league, average, team_name),
         )
     return pages

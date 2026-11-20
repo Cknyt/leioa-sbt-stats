@@ -50,6 +50,8 @@ def test_build_site_creates_pages(site):
     out, pages = site
     assert pages == [
         out / "index.html",
+        out / "partidos.html",
+        out / "liga.html",
         out / "jugadores.html",
         out / "comparativa.html",
         out / "partidos" / "99138.html",
@@ -60,6 +62,9 @@ def test_build_site_creates_pages(site):
     assert (out / "style.css").exists()
     assert (out / "players.js").exists()
     assert (out / "comparison.js").exists()
+    # Fuentes y gráficos desde el propio hosting.
+    assert (out / "plotly.min.js").stat().st_size > 1_000_000
+    assert (out / "fonts" / "barlow-400.woff2").exists()
 
 
 def test_next_match_links_to_rival_report(site):
@@ -138,7 +143,8 @@ def test_players_page(site):
 def test_comparison_page(site):
     out, _ = site
     html = (out / "comparativa.html").read_text(encoding="utf-8")
-    assert 'aria-current="page">Comparativa' in html
+    # La comparativa cuelga de la página de la liga.
+    assert 'aria-current="page">Liga' in html
     # Por defecto, con el próximo rival; el equipo propio no está en el desplegable.
     assert '<option value="easo-basket" selected>Easo Basket (próximo rival)</option>' in html
     assert '<option value="leioa-sbt"' not in html
@@ -286,3 +292,63 @@ def test_preview_page(site):
     # El menú lleva a la previa del próximo rival.
     index = (out / "index.html").read_text(encoding="utf-8")
     assert 'href="previas/easo-basket.html">Previa</a>' in index
+
+
+def test_menu_and_new_pages(site):
+    out, pages = site
+    index = (out / "index.html").read_text(encoding="utf-8")
+    # Cinco entradas: Resumen, Previa, Jugadores, Partidos y Liga.
+    menu = index.split('<nav class="tabs"')[1].split("</nav>")[0]
+    assert menu.count("<a ") == 5
+    assert "Datos hasta la jornada 1" in index
+    games = (out / "partidos.html").read_text(encoding="utf-8")
+    assert 'aria-current="page">Partidos' in games
+    assert 'href="partidos/99138.html"' in games
+    league = (out / "liga.html").read_text(encoding="utf-8")
+    assert 'href="equipos/easo-basket.html"' in league
+    assert "NETO aj." in league
+
+
+def test_no_external_requests(site):
+    # Ni Google Fonts ni la web de plotly: verían la IP de quien visita.
+    _, pages = site
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        assert "fonts.googleapis" not in html
+        assert "cdn.plot.ly" not in html
+
+
+def test_charts_library_only_where_needed(site):
+    out, _ = site
+    assert "plotly.min.js" in (out / "index.html").read_text(encoding="utf-8")
+    for page in ("jugadores.html", "comparativa.html", "liga.html", "previas/easo-basket.html"):
+        assert "plotly.min.js" not in (out / page).read_text(encoding="utf-8"), page
+
+
+def test_sections_fold(site):
+    out, _ = site
+    team = (out / "equipos" / "easo-basket.html").read_text(encoding="utf-8")
+
+    # Rotación y jugadores, abiertos; el resto, plegado.
+    def opens(section: str) -> bool:
+        after = team.split(f'id="{section}">', 1)[1]
+        return after.lstrip().startswith("<details open>")
+
+    assert opens("rotacion")
+    assert opens("jugadores")
+    assert not opens("balon")
+    preview = (out / "previas" / "easo-basket.html").read_text(encoding="utf-8")
+    # La previa empieza por las claves y lleva botón para imprimir.
+    assert preview.index('id="claves"') < preview.index('id="parar"')
+    assert "data-print" in preview
+
+
+def test_short_labels():
+    from leioa_stats.format import short_labels
+
+    assert short_labels(["IÑIGO CARNEROS VILLAR", "JON ALAVA AGUILETA"]) == [
+        "I. Carneros",
+        "J. Alava",
+    ]
+    # Si dos quedan iguales, se dejan completos.
+    assert short_labels(["JON SAROBE A", "JUAN SAROBE B"]) == ["Jon Sarobe A", "Juan Sarobe B"]

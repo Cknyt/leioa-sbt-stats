@@ -89,7 +89,7 @@ uv run python -m leioa_stats.metrics
 
 ## Web
 
-Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly).
+Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. El menú tiene cinco páginas: **Resumen**, **Previa** (la del próximo rival), **Jugadores**, **Partidos** y **Liga** (clasificación avanzada, con enlace a la comparativa y a cada equipo). Cada página empieza por lo que más se usa; el resto va en secciones plegables, con un índice "En esta página" arriba. En el móvil, las tablas anchas enseñan las primeras columnas y un botón para ver todas. La previa se puede imprimir (sin menú ni glosario). Las fuentes (Barlow, licencia SIL OFL, en `static/fonts/`) y la librería de gráficos se sirven desde el propio hosting: ninguna página hace peticiones a otros servidores. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly).
 
 La página **Previa** (una por rival, en `previas/`, y en el menú la del próximo) cruza lo que hace cada equipo con lo que permite el otro (`metrics/preview.py`): tres claves, dónde hacer daño, qué nos pueden hacer, a quién parar, a quién se parecen, su rotación, ideas y un pronóstico orientativo. En la página de cada partido, **la previa frente a lo que pasó** repite ese cálculo solo con las jornadas anteriores y dice si se cumplió.
 
@@ -117,17 +117,32 @@ Después abre <http://localhost:8000>.
 
 ## Temporadas pasadas y prueba retrospectiva
 
-Para descargar una temporada pasada, con el número de su grupo en basketbasko.com (`group/?id=<número>`):
+Las temporadas pasadas de la misma liga (1ª Mas-Liga Regular - Único) están en `HISTORY_GROUPS` de `history.py`: 2511 (2025-26) y 2138 (2024-25). Para descargarlas (la publicación lo hace sola):
+
+```bash
+uv run python -m leioa_stats.history
+```
+
+Para otra temporada, con el número de su grupo en basketbasko.com (`group/?id=<número>`):
 
 ```bash
 uv run python -m leioa_stats.history <número del grupo>
 ```
 
-Se guarda en `data/raw/history/<número>/`. Los jugadores se unen entre temporadas por el uuid del acta. Para comprobar si las conclusiones de las primeras jornadas se mantienen al final (y si los umbrales de confianza están bien puestos):
+Se guardan en `data/raw/history/<número>/`. Los jugadores se unen entre temporadas por el uuid del acta. Para comprobar si las conclusiones de las primeras jornadas se mantienen al final (y si los umbrales de confianza están bien puestos):
 
 ```bash
 uv run python -m leioa_stats.backtest data/raw/history/<número> 4
 ```
+
+Resultado con las dos temporadas pasadas (conclusiones de equipo que siguen del mismo lado de la media de la liga en la jornada 26):
+
+| Corte | Confianza alta | Confianza media | Sin conclusión (no se muestran) |
+|---|---|---|---|
+| Jornada 4 | 27 de 30 (90 %) | 37 de 45 (82 %) | 72 % |
+| Jornada 8 | 36 de 37 (97 %) | 40 de 43 (93 %) | 79 % |
+
+Las de confianza alta aguantan casi siempre; las de confianza media de la jornada 4 fallan en 1 de cada 5. Lo que no se muestra se mantiene bastante menos.
 
 ## Publicación
 

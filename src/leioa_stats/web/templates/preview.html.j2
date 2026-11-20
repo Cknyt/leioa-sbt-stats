@@ -1,25 +1,17 @@
 {% extends "base.html.j2" %}
+{% from "macros.html.j2" import fold, how %}
 {% block title %}Previa · {{ rival }}{% endblock %}
 {% block content %}
-<p class="back"><a href="{{ root }}index.html">← Temporada</a> · <a href="{{ root }}equipos/{{ rival_slug }}.html">Informe de {{ rival }}</a> · <a href="{{ root }}comparativa.html#{{ rival_slug }}">Comparativa</a></p>
+<p class="back no-print"><a href="{{ root }}equipos/{{ rival_slug }}.html">Informe de {{ rival }}</a> · <a href="{{ root }}comparativa.html#{{ rival_slug }}">Comparativa</a></p>
 <section class="hero">
   <p class="meta">Previa{% if match %} · Jornada {{ match.round }} · {{ date }} · {{ 'En casa' if home else 'Fuera' }}{% endif %}</p>
   <h1>{{ team_name }} – {{ rival }}</h1>
-  <p class="hint">Cruza lo que hace cada equipo con lo que permite el otro. {{ team_name }}: {{ own_games }} partidos; {{ rival }}: {{ rival_games }}. Solo se da un veredicto cuando el cruce se distingue del azar (<span class="conf alta">alta</span> o <span class="conf media">media</span>, como en el resto de la web).</p>
   {% if own_out or rival_out %}<p class="note">Bajas según el cuerpo técnico: {% if own_out %}{{ team_name }}: {{ own_out | map('title') | join(', ') }}. {% endif %}{% if rival_out %}{{ rival }}: {{ rival_out | map('title') | join(', ') }}.{% endif %}</p>{% endif %}
   {% if missed_last %}<p class="note">No estuvieron en el último partido de {{ rival }}: {{ missed_last | join(", ") }}.</p>{% endif %}
+  <button type="button" class="print-button no-print" data-print hidden>Imprimir la previa</button>
 </section>
 
-{% if forecast %}
-<section id="pronostico">
-  <h2>Pronóstico orientativo</h2>
-  <p class="big-number">{{ forecast.own }} – {{ forecast.rival }}</p>
-  <p>Probabilidad de victoria de {{ team_name }}: <b>{{ forecast.probability }} %</b> (margen esperado {{ forecast.margin }}, ± {{ forecast.spread }} puntos en 2 de cada 3 partidos).</p>
-  <p class="hint">{{ forecast.method }}</p>
-</section>
-{% endif %}
-
-<section class="insights">
+<section class="insights" id="claves">
   <h2>Tres claves</h2>
   {% if keys %}
   <ul class="key-list">
@@ -28,22 +20,10 @@
   {% else %}
   <p class="note">Ningún cruce se distingue todavía del azar. Con más partidos saldrán las claves.</p>
   {% endif %}
+  {{ how("Cada cruce enfrenta lo que hace un equipo con lo que permite el otro (" ~ team_name ~ ": " ~ own_games ~ " partidos; " ~ rival ~ ": " ~ rival_games ~ "). Solo se da un veredicto cuando el cruce se distingue del azar, con confianza alta o media, como en el resto de la web.") }}
 </section>
 
-<div class="two-columns">
-  <section>
-    <h2>Dónde hacer daño</h2>
-    {% if attack %}<ul class="key-list">{% for k in attack %}<li>{{ k.text }} <span class="conf {{ k.confidence }}">{{ k.confidence }}</span></li>{% endfor %}</ul>
-    {% else %}<p class="hint">Nada claro todavía.</p>{% endif %}
-  </section>
-  <section>
-    <h2>Qué nos pueden hacer</h2>
-    {% if defense %}<ul class="key-list">{% for k in defense %}<li>{{ k.text }} <span class="conf {{ k.confidence }}">{{ k.confidence }}</span></li>{% endfor %}</ul>
-    {% else %}<p class="hint">Nada claro todavía.</p>{% endif %}
-  </section>
-</div>
-
-<section>
+<section id="parar">
   <h2>A quién parar</h2>
   {% if stop or fouls %}
   <ul class="key-list">
@@ -51,20 +31,32 @@
     {% for f in fouls %}<li>{{ f }}</li>{% endfor %}
   </ul>
   {% endif %}
-  {% if similar %}
-  <h3>A quién se parecen</h3>
-  <p class="hint">{{ similar_method }}</p>
-  <ul class="key-list">{% for s in similar %}<li>{{ s }}</li>{% endfor %}</ul>
-  {% endif %}
   <h3>Sus jugadores con más minutos</h3>
-  <p class="hint">"Ficha" sale de la hoja del cuerpo técnico (posición y altura), si se ha rellenado.</p>
   <div class="table-wrap">{{ key_players | safe }}</div>
   {% if starters %}<p><b>Titulares</b> (veces): {{ starters }}.</p>{% endif %}
   {% if closers %}<p><b>Cierran los partidos</b>: {{ closers }}.</p>{% endif %}
+  {% if similar %}
+  <h3>A quién se parecen</h3>
+  <ul class="key-list">{% for s in similar %}<li>{{ s }}</li>{% endfor %}</ul>
+  {{ how(similar_method, "Cómo se comparan") }}
+  {% endif %}
 </section>
 
+<div class="two-columns">
+  <section id="ataque">
+    <h2>Dónde hacer daño</h2>
+    {% if attack %}<ul class="key-list">{% for k in attack %}<li>{{ k.text }} <span class="conf {{ k.confidence }}">{{ k.confidence }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="hint">Nada claro todavía.</p>{% endif %}
+  </section>
+  <section id="defensa">
+    <h2>Qué nos pueden hacer</h2>
+    {% if defense %}<ul class="key-list">{% for k in defense %}<li>{{ k.text }} <span class="conf {{ k.confidence }}">{{ k.confidence }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="hint">Nada claro todavía.</p>{% endif %}
+  </section>
+</div>
+
 {% if ideas %}
-<section class="insights">
+<section class="insights" id="ideas">
   <h2>Ideas para el partido</h2>
   <ul class="key-list">{% for i in ideas %}<li>{{ i.text }} <span class="conf {{ i.confidence }}">{{ i.confidence }}</span></li>{% endfor %}</ul>
 </section>
@@ -73,17 +65,25 @@
 {% if ai_report %}
 <section id="informe-ia">
   <h2>Resumen redactado</h2>
-  <p class="hint">Redactado por un modelo de lenguaje ({{ ai_model }}) solo a partir de las cifras de esta página. Se ha comprobado automáticamente que cada número que cita está en los datos; aun así, si algo no cuadra, mandan las tablas.</p>
   {% for paragraph in ai_report %}<p>{{ paragraph }}</p>{% endfor %}
+  {{ how("Redactado por un modelo de lenguaje (" ~ ai_model ~ ") solo a partir de las frases de esta página. Se ha comprobado automáticamente que cada número y cada jugador que cita están en ellas; aun así, si algo no cuadra, mandan las tablas.", "Quién lo redacta") }}
+</section>
+{% endif %}
+
+{% if forecast %}
+<section id="pronostico">
+  <h2>Pronóstico orientativo</h2>
+  <p class="big-number">{{ forecast.own }} – {{ forecast.rival }}</p>
+  <p>Probabilidad de victoria de {{ team_name }}: <b>{{ forecast.probability }} %</b> (margen esperado {{ forecast.margin }}, ± {{ forecast.spread }} puntos en 2 de cada 3 partidos).</p>
+  {{ how(forecast.method) }}
 </section>
 {% endif %}
 
 {% if matchups %}
-<section>
-  <h2>Todos los cruces</h2>
+{% call fold("cruces", "Todos los cruces", extra_class="no-print") %}
   <p class="hint">"Ataque" = lo que hace el equipo que ataca; "Permite" = lo que concede el que defiende; "Esperable" = Ataque + Permite − Liga. En pérdidas, menos es mejor para el que ataca.</p>
   <div class="table-wrap">{{ matchups | safe }}</div>
-</section>
+{% endcall %}
 {% endif %}
 
 {% include "glossary.html.j2" %}
