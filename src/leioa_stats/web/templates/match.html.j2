@@ -19,6 +19,15 @@
 </section>
 {% endif %}
 
+{% if review %}
+<section id="revision">
+  <h2>La previa frente a lo que pasó</h2>
+  <p class="hint">Cruces calculados solo con las {{ review.rounds }} jornadas anteriores a este partido, como se habrían visto en la previa. "Esperable" = valor del atacante + lo que permite el defensor − media de la liga. "¿Se cumplió?" solo se responde en los cruces con veredicto: si el valor real quedó del lado previsto respecto a la media de la liga.</p>
+  {% if review.checked %}<p><b>{{ review.hits }} de {{ review.checked }}</b> veredictos se cumplieron.</p>{% endif %}
+  <div class="table-wrap">{{ review.table | safe }}</div>
+</section>
+{% endif %}
+
 {% if issues %}
 <section class="issues">
   <h2>Fiabilidad de los datos</h2>

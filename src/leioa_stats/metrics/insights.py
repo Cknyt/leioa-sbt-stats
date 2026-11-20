@@ -23,6 +23,7 @@ Reglas (umbrales explícitos, se pueden comprobar con los números de la página
   lo que pasó, no es una inferencia, así que no lleva confianza.
 """
 
+import math
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -129,6 +130,7 @@ class Fact:
     z: float
     n: int
     rank: int | None = None
+    se: float = float("nan")  # error estándar del valor
 
     @property
     def confidence(self) -> str | None:
@@ -202,6 +204,7 @@ def team_facts(
                 z=team_z(value, avg, spread[column], games, higher),
                 n=games,
                 rank=_rank(league, column, team, higher),
+                se=spread[column] / math.sqrt(games) if games else float("nan"),
             )
         )
     return facts

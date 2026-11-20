@@ -25,6 +25,7 @@ jobs:
       HAS_FTP: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' && vars.FTP_SERVER_DIR != '' }}
       HAS_REPORT_KEY: ${{ secrets.INFORME_CLAVE != '' }}
       HAS_TELEGRAM: ${{ secrets.TELEGRAM_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
+      HAS_STAFF: ${{ secrets.PLANTILLA_CSV != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +48,17 @@ jobs:
 
       - name: Validar datos
         run: uv run python -m leioa_stats.validate | tail -n 1
+
+      # Hoja del cuerpo técnico (posición, altura y disponibilidad): el repositorio es público,
+      # así que no se versiona. Si existe el secreto PLANTILLA_CSV (el contenido del CSV, ver
+      # src/leioa_stats/staff.py), se escribe en data/plantilla.csv antes de generar la web.
+      - name: Hoja del cuerpo técnico
+        if: env.HAS_STAFF == 'true'
+        env:
+          PLANTILLA_CSV: ${{ secrets.PLANTILLA_CSV }}
+        run: |
+          mkdir -p data
+          printenv PLANTILLA_CSV > data/plantilla.csv
 
       - name: Generar la web
         run: uv run python -m leioa_stats.web

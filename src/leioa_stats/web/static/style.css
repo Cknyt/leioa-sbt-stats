@@ -446,3 +446,10 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 
 .show-extra:focus-visible + .toggle-extra { outline: 2px solid var(--accent, #0c653a); }
 .compare tr[data-extra] { display: none; }
 .show-extra:checked ~ .table-wrap .compare tr[data-extra] { display: table-row; }
+
+/* Previa. */
+.key-list { margin: 0; padding-left: 20px; }
+.key-list li { margin: 6px 0; }
+.two-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.two-columns > section { min-width: 0; }
+.big-number { font-family: "Barlow Condensed", sans-serif; font-size: 2.4rem; font-weight: 700; margin: 4px 0; }

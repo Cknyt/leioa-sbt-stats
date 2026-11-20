@@ -191,6 +191,32 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     ),
     (("Eliminado",), "Partidos en los que llegó a 5 faltas."),
     (("C1", "C2", "C3", "C4"), "Cuarto del partido (PR = prórroga)."),
+    (("Cifra",), "Lo que se cruza: tiro, pérdidas, rebote ofensivo, tiros libres..."),
+    (
+        ("Lado",),
+        "Nuestro ataque contra su defensa, o su ataque contra nuestra defensa.",
+    ),
+    (("Ataque",), "Lo que hace el equipo que ataca en esa cifra (temporada)."),
+    (("Permite",), "Lo que concede la defensa del otro equipo en esa cifra (temporada)."),
+    (("Liga",), "Media de la liga en esa cifra."),
+    (
+        ("Esperable",),
+        "Valor esperado en el partido: lo que hace el atacante + lo que permite el defensor − "
+        "la media de la liga (modelo aditivo).",
+    ),
+    (
+        ("Veredicto", "Previa"),
+        "A favor o en contra si el cruce se aleja de la media 1,5 errores estándar o más. "
+        "Choque: el ataque y la defensa son buenos a la vez.",
+    ),
+    (("Confianza",), "Alta (2 errores estándar o más) o media (entre 1,5 y 2)."),
+    (("Real",), "Lo que pasó en el partido."),
+    (
+        ("¿Se cumplió?",),
+        "Si el valor real quedó del lado que decía la previa respecto a la media de la liga.",
+    ),
+    (("Ficha",), "Posición y altura, según la hoja del cuerpo técnico."),
+    (("Último partido",), "Si estuvo en el acta del último partido de su equipo."),
 ]
 
 TERMS: dict[str, str] = {term: text for terms, text in ENTRIES for term in terms}

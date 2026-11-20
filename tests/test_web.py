@@ -53,6 +53,7 @@ def test_build_site_creates_pages(site):
         out / "jugadores.html",
         out / "comparativa.html",
         out / "partidos" / "99138.html",
+        out / "previas" / "easo-basket.html",
         out / "equipos" / "leioa-sbt.html",
         out / "equipos" / "easo-basket.html",
     ]
@@ -68,6 +69,7 @@ def test_next_match_links_to_rival_report(site):
     assert '<span class="chip">17/10/2026 18:00</span>' in html
     assert '<span class="chip accent">Fuera</span>' in html
     assert 'href="equipos/easo-basket.html">Ver el informe del rival' in html
+    assert 'href="previas/easo-basket.html">Ver la previa' in html
 
 
 def test_team_page(site):
@@ -271,3 +273,16 @@ def test_team_names_come_from_calendar(tmp_path):
     (raw / "matches.json").write_text(json.dumps([renamed]), encoding="utf-8")
     build.build_site(raw, tmp_path / "site", "LEIOA SBT")
     assert (tmp_path / "site" / "equipos" / "easo-basket-ke.html").exists()
+
+
+def test_preview_page(site):
+    out, _ = site
+    html = (out / "previas" / "easo-basket.html").read_text(encoding="utf-8")
+    assert "Leioa SBT – Easo Basket" in html
+    assert "Jornada 2 · 17/10/2026 18:00 · Fuera" in html
+    # Con un solo partido, ningún cruce se distingue del azar.
+    assert "Ningún cruce se distingue todavía del azar" in html
+    assert "Todos los cruces" in html
+    # El menú lleva a la previa del próximo rival.
+    index = (out / "index.html").read_text(encoding="utf-8")
+    assert 'href="previas/easo-basket.html">Previa</a>' in index

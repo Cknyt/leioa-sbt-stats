@@ -47,6 +47,13 @@ from leioa_stats.metrics.league import (
 )
 from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
 from leioa_stats.metrics.origins import origin_rows, origin_summary
+from leioa_stats.metrics.preview import (
+    actual_values,
+    describe,
+    fulfilled,
+    key_matchups,
+    team_matchups,
+)
 from leioa_stats.metrics.quarters import QUARTER_COLUMNS, quarter_summary
 from leioa_stats.metrics.rotation import (
     availability,
@@ -58,6 +65,7 @@ from leioa_stats.metrics.rotation import (
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.metrics.turnovers import live_share, turnover_profiles, turnover_rows
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
+from leioa_stats.staff import describe_player, load_staff, unavailable
 from leioa_stats.validate import POINTS, validate_match
 from leioa_stats.web import charts
 from leioa_stats.web.glossary import ENTRIES, TERMS
@@ -194,6 +202,44 @@ def quarters_and_origins(tables, team_name) -> dict:
     return {"quarters": table(quarters[QUARTER_COLUMNS], "Cuarto"), "origins": table(summary)}
 
 
+CHECK = {True: "Sí", False: "No", None: "–"}
+SIDE_LABELS = {"ataque": "Nuestro ataque", "defensa": "Su ataque"}
+VERDICT_LABELS = {"ventaja": "A favor", "desventaja": "En contra", "choque": "Choque", "": "–"}
+
+
+def match_review(match, tables, team_name, rival, own_game, shots) -> dict | None:
+    """Lo que decía la previa (solo con las jornadas anteriores) frente a lo que pasó."""
+    items = team_matchups(
+        tables["teams"], tables["shots"], team_name, rival, before_round=match["round"]
+    )
+    if not items:
+        return None
+    actual = actual_values(
+        own_game, shots[shots["team"] == team_name], shots[shots["team"] != team_name]
+    )
+    rows = []
+    for m in items:
+        real = actual[(m.key, m.side)]
+        rows.append(
+            {
+                "Cifra": m.label.split(" (")[0].capitalize(),
+                "Lado": SIDE_LABELS[m.side],
+                "Previa": VERDICT_LABELS[m.verdict],
+                "Esperable": round(m.expected, 1),
+                "Real": round(real, 1) if pd.notna(real) else None,
+                "¿Se cumplió?": CHECK[fulfilled(m, real)],
+            }
+        )
+    with_verdict = [fulfilled(m, actual[(m.key, m.side)]) for m in items]
+    checked = [v for v in with_verdict if v is not None]
+    return {
+        "table": table(pd.DataFrame(rows).set_index("Cifra"), "Cifra"),
+        "hits": sum(checked),
+        "checked": len(checked),
+        "rounds": match["round"] - 1,
+    }
+
+
 def match_page(match, stats, moves, tables, stints, team_name) -> dict:
     """Datos de la página de un partido."""
     match_id = match["id"]
@@ -238,6 +284,7 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
         for local, visitor in (m["score"].split("-") for m in moves if m["idMove"] in POINTS)
     ]
     return {
+        "review": match_review(match, tables, team_name, rival, own_game, shots),
         "keys": match_insights(own_game, score_diffs, team_name, rival),
         "match": match,
         "title": match_title(match),
@@ -569,6 +616,100 @@ def ball_section(team_name, tables) -> dict:
     }
 
 
+KEY_PLAYERS = 8
+
+
+def _matchup_item(m, own_name, rival_name) -> dict:
+    return {"text": describe(m, own_name, rival_name), "confidence": m.confidence}
+
+
+def preview_page(rival, tables, stints, league, average, team_name, upcoming, staff) -> dict:
+    """Informe prepartido contra un rival: claves, a quién parar, rotación e ideas."""
+    own_name, rival_name = display_name(team_name), display_name(rival)
+    items = team_matchups(tables["teams"], tables["shots"], team_name, rival)
+    players = tables["players"]
+    season = (
+        player_season(players, rival)
+        .join(player_usage(players, tables["teams"], rival))
+        .join(player_profiles(players, tables["shots"], rival).drop(columns="TCA"))
+    )
+    insights = insights_for(rival, tables, league, average, season)
+    trouble = foul_trouble(tables["fouls"], players, rival, PLAYER_MIN_MINUTES)
+    fouls = [
+        f"{display_name(p)} se carga de faltas pronto: llegó a 2 faltas antes del descanso en "
+        f"{int(row['2 en la 1.ª parte'])} de sus {int(row['PJ'])} partidos. Atacarle."
+        for p, row in trouble.iterrows()
+        if row["2 en la 1.ª parte"] >= 2 and row["2 en la 1.ª parte"] >= row["PJ"] / 2
+    ]
+    rival_players = players[players["team"] == rival]
+    last_round = rival_players["round"].max()
+    present = set(rival_players.loc[rival_players["round"] == last_round, "player"])
+    numbers = rival_players.groupby("player")["number"].last().to_dict()
+    key = season[season["PJ"] > 0].sort_values("MIN", ascending=False).head(KEY_PLAYERS)
+    key_rows = pd.DataFrame(
+        {
+            "Dorsal": [numbers.get(p, "") for p in key.index],
+            "Ficha": [describe_player(staff, rival, p) or "–" for p in key.index],
+            "MIN/PJ": key["MIN/PJ"].to_numpy(),
+            "PTS/PJ": key["PTS/PJ"].to_numpy(),
+            "USO%": key["USO%"].to_numpy(),
+            "TS%": key["TS%"].to_numpy(),
+            "T3": [f"{int(r['T3M'])}/{int(r['T3A'])}" for _, r in key.iterrows()],
+            "Perfil": key["Perfil"].to_numpy(),
+            "Último partido": ["Sí" if p in present else "No" for p in key.index],
+        },
+        index=[display_name(p) for p in key.index],
+    )
+    match = next(
+        (m for m in upcoming if rival in (m["local"], m["visitor"])),
+        None,
+    )
+    rows = [
+        {
+            "Cifra": m.label.split(" (")[0].capitalize(),
+            "Lado": SIDE_LABELS[m.side],
+            "Ataque": round(m.attacker.value, 1),
+            "Permite": round(m.defender.value, 1),
+            "Liga": round(m.average, 1),
+            "Esperable": round(m.expected, 1),
+            "Veredicto": VERDICT_LABELS[m.verdict],
+            "Confianza": m.confidence or "–",
+        }
+        for m in items
+    ]
+    rotation = rotation_section(rival, tables, stints)
+    return {
+        "rival": rival_name,
+        "rival_slug": slug(rival),
+        "match": match,
+        "date": match_date(match) if match else None,
+        "home": match is not None and match["local"] == team_name,
+        "keys": [_matchup_item(m, own_name, rival_name) for m in key_matchups(items)],
+        "attack": [
+            _matchup_item(m, own_name, rival_name)
+            for m in items
+            if m.side == "ataque" and m.verdict
+        ],
+        "defense": [
+            _matchup_item(m, own_name, rival_name)
+            for m in items
+            if m.side == "defensa" and m.verdict
+        ],
+        "matchups": table(pd.DataFrame(rows).set_index("Cifra"), "Cifra") if rows else "",
+        "stop": insights.players,
+        "fouls": fouls,
+        "ideas": insights.ideas,
+        "key_players": table(key_rows, "Jugador"),
+        "starters": rotation["starters"],
+        "closers": rotation["closers"],
+        "missed_last": rotation["missed_last"],
+        "rival_out": unavailable(staff, rival),
+        "own_out": unavailable(staff, team_name),
+        "rival_games": int(league.loc[rival, "PJ"]),
+        "own_games": int(league.loc[team_name, "PJ"]),
+    }
+
+
 def team_page(team_name, all_matches, tables, stints, league, average, own_team) -> dict:
     """Datos de la página de scouting de un equipo de la liga."""
     players, shots = tables["players"], tables["shots"]
@@ -641,6 +782,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
         "name": display_name(team_name),
         "slug": slug(team_name),
         "is_own": team_name == own_team,
+        "preview_link": f"../previas/{slug(team_name)}.html",
         "record": f"{int(row['V'])}-{int(row['D'])}",
         "ranks": ranks(league, team_name),
         "n_teams": len(league),
@@ -686,7 +828,9 @@ def build_site(
     }
 
     env = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape())
+    next_rival = next_rival_of(upcoming, team_name)
     common = {
+        "next_preview": f"previas/{slug(next_rival)}.html" if next_rival else None,
         "team_name": display_name(team_name),
         "own_slug": slug(team_name),
         "plotly_url": f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js",
@@ -701,6 +845,7 @@ def build_site(
         shutil.rmtree(out_dir)
     (out_dir / "partidos").mkdir(parents=True)
     (out_dir / "equipos").mkdir()
+    (out_dir / "previas").mkdir()
     for static_file in ("style.css", "glossary.js", "players.js", "comparison.js", "visits.js"):
         shutil.copy(HERE / "static" / static_file, out_dir / static_file)
     # Diario de visitas: receptor (con el aviso por Telegram), informe privado y sus piezas
@@ -742,6 +887,19 @@ def build_site(
             "match.html.j2",
             "../",
             **match_page(match, stats, moves, tables, stints[team_name], team_name),
+        )
+    staff = load_staff()
+    for rival in league.index:
+        if rival == team_name:
+            continue
+        render(
+            out_dir / "previas" / f"{slug(rival)}.html",
+            "preview.html.j2",
+            "../",
+            active="preview" if rival == next_rival else None,
+            **preview_page(
+                rival, tables, stints[rival], league, average, team_name, upcoming, staff
+            ),
         )
     for team in league.index:
         render(
