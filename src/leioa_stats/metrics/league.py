@@ -16,10 +16,12 @@ Los porcentajes salen de los totales de la temporada, no de la media de cada par
 import pandas as pd
 
 from leioa_stats.metrics.advanced import four_factors, ratings, team_games
+from leioa_stats.metrics.assists import team_assisted_share
 from leioa_stats.metrics.basic import season_totals
 from leioa_stats.metrics.origins import origin_average, origin_profiles
 from leioa_stats.metrics.quarters import DIFFERENCE_COLUMNS, quarter_differences
 from leioa_stats.metrics.shots import add_zones
+from leioa_stats.metrics.turnovers import live_share, turnover_profiles
 
 MIN_ATTEMPTS_FOR_PROFILE = 10
 
@@ -32,19 +34,23 @@ COMPARISON = [
     ("Ritmo y eficiencia", [("RITMO", 0), ("ORtg", 1), ("DRtg", -1), ("NETO", 1)]),
     ("Puntos", [("PTS/PJ", 1), ("Encajados/PJ", -1)]),
     ("Tiro", [("TC%", 1), ("T2%", 1), ("T3%", 1), ("T1%", 1), ("eFG%", 1), ("TS%", 1),
-              ("T3A/PJ", 0), ("TL/TC", 1)]),
-    ("Rebote y balón", [("RT/PJ", 1), ("RO/PJ", 1), ("RD/PJ", 1), ("RO%", 1), ("AS/PJ", 1),
-                        ("PER/PJ", -1), ("PER%", -1), ("REC/PJ", 1), ("TAP/PJ", 1),
-                        ("FP/PJ", -1)]),
+              ("% triples", 0), ("T3A/PJ", 0), ("TL/TC", 1)]),
+    ("Rebote y balón", [("RO%", 1), ("PER%", -1), ("% con robo", -1), ("% asistidas", 0),
+                        ("RT/PJ", 1), ("RO/PJ", 1), ("RD/PJ", 1), ("AS/PJ", 1),
+                        ("PER/PJ", -1), ("REC/PJ", 1), ("TAP/PJ", 1), ("FP/PJ", -1)]),
     ("Por cuartos", [(column, 1) for column in DIFFERENCE_COLUMNS]),
     ("Origen de los puntos", [("2ª oportunidad/PJ", 1), ("PTS/RO", 1), ("Tras pérdida/PJ", 1),
                               ("Contraataque/PJ", 1)]),
     ("Lo que permite a sus rivales", [("eFG% rival", -1), ("PER% rival", 1), ("RO% rival", -1),
-                                      ("TL/TC rival", -1), ("2ª oportunidad/PJ rival", -1),
+                                      ("TL/TC rival", -1), ("% con robo rival", 1),
+                                      ("2ª oportunidad/PJ rival", -1),
                                       ("Tras pérdida/PJ rival", -1),
                                       ("Contraataque/PJ rival", -1)]),
 ]  # fmt: skip
 COMPARISON_COLUMNS = [column for _, rows in COMPARISON for column, _ in rows]
+# Cifras por partido: dependen del ritmo (quien juega más posesiones coge más rebotes y pierde
+# más balones), así que en la comparativa van plegadas detrás de las de por posesión.
+EXTRA_COLUMNS = {column for column in COMPARISON_COLUMNS if "/PJ" in column}
 # Las que no están en la clasificación (league_table) salen de los totales de cada equipo.
 BOX_COMPARISON = ["PTS/PJ", "TC%", "T2%", "T3%", "T1%", "TS%", "T3A/PJ", "RT/PJ", "RO/PJ",
                   "RD/PJ", "AS/PJ", "PER/PJ", "REC/PJ", "TAP/PJ", "FP/PJ"]  # fmt: skip
@@ -87,31 +93,59 @@ def ranks(table: pd.DataFrame, team: str) -> dict[str, int]:
     }
 
 
+def style_columns(baskets: pd.DataFrame, turnovers: pd.DataFrame) -> pd.DataFrame:
+    """Por equipo: % de canastas asistidas y % de pérdidas con robo (propias y forzadas)."""
+    lost = turnover_profiles(turnovers)
+    return pd.DataFrame(
+        {
+            "% asistidas": team_assisted_share(baskets),
+            "% con robo": lost["% con robo"],
+            "% con robo rival": lost["% con robo forzadas"],
+        }
+    )
+
+
 def team_profiles(
-    teams: pd.DataFrame, origins: pd.DataFrame, quarters: pd.DataFrame
+    teams: pd.DataFrame,
+    origins: pd.DataFrame,
+    quarters: pd.DataFrame,
+    baskets: pd.DataFrame,
+    turnovers: pd.DataFrame,
 ) -> pd.DataFrame:
     """Una fila por equipo con todas las cifras de la comparativa (acumulado de la temporada).
 
-    `origins` es la tabla de metrics/origins.py (origen de los puntos de cada partido) y
-    `quarters`, la de cada cuarto (parse.quarter_rows).
+    `origins` es la tabla de metrics/origins.py (origen de los puntos de cada partido),
+    `quarters`, la de cada cuarto (parse.quarter_rows), `baskets`, la de metrics/assists.py y
+    `turnovers`, la de metrics/turnovers.py.
     """
     table = league_table(teams)
     rows = {}
     for team in table.index:
-        own = season_totals(teams[teams["team"] == team])[BOX_COMPARISON]
+        totals = season_totals(teams[teams["team"] == team])
+        own = totals[BOX_COMPARISON]
+        own["% triples"] = round(100 * totals["T3A"] / totals["TCA"], 1)
         rivals = teams[(teams["opponent"] == team) & (teams["team"] != team)]
         own["Encajados/PJ"] = season_totals(rivals)["PTS/PJ"]
         rows[team] = own
     box = pd.DataFrame(rows).T.astype(float)
-    profiles = table.join(box).join(origin_profiles(origins)).join(quarter_differences(quarters))
+    profiles = (
+        table.join(box)
+        .join(origin_profiles(origins))
+        .join(quarter_differences(quarters))
+        .join(style_columns(baskets, turnovers))
+    )
     return profiles[COMPARISON_COLUMNS]
 
 
-def profile_average(teams: pd.DataFrame, origins: pd.DataFrame) -> pd.Series:
+def profile_average(
+    teams: pd.DataFrame, origins: pd.DataFrame, baskets: pd.DataFrame, turnovers: pd.DataFrame
+) -> pd.Series:
     """Media de la liga de cada cifra de la comparativa (todos los partidos juntos)."""
-    average = pd.concat(
-        [league_average(teams), season_totals(teams)[BOX_COMPARISON], origin_average(origins)]
-    )
+    totals = season_totals(teams)
+    average = pd.concat([league_average(teams), totals[BOX_COMPARISON], origin_average(origins)])
+    average["% triples"] = 100 * totals["T3A"] / totals["TCA"]
+    average["% asistidas"] = 100 * baskets["passer"].notna().mean()
+    average["% con robo"] = average["% con robo rival"] = live_share(turnovers)
     # En la liga entera, lo que se anota es lo que se encaja y lo que se permite es lo que se hace.
     average["Encajados/PJ"] = average["PTS/PJ"]
     for column in ["eFG%", "PER%", "RO%", "TL/TC"]:

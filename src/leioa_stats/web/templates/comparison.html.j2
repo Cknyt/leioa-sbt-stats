@@ -21,6 +21,10 @@
 {% endif %}
 
 <section>
+  {# Casilla sin JavaScript: al marcarla, el CSS muestra las filas por partido. #}
+  <input type="checkbox" id="show-extra" class="show-extra">
+  <label for="show-extra" class="toggle-extra">Ver también las cifras por partido</label>
+  <p class="hint">Por defecto, solo cifras por posesión o en porcentaje: no dependen del ritmo. Las cifras por partido favorecen a los equipos que juegan más rápido.</p>
   <div class="table-wrap">
     <table class="data compare">
       <thead>
@@ -35,7 +39,7 @@
       <tbody>
         <tr class="group"><td colspan="4">{{ group.title }}</td></tr>
         {% for row in group.rows %}
-        <tr data-direction="{{ row.direction }}">
+        <tr data-direction="{{ row.direction }}"{% if row.extra %} data-extra{% endif %}>
           <th>{{ row.column }}</th>
           <td class="{{ 'better' if row.better == 'own' }}">{{ row.own }} <small>{{ row.own_rank }}º</small></td>
           <td class="rival{{ ' better' if row.better == 'other' }}">{{ row.rival }} <small>{{ row.rival_rank }}º</small></td>

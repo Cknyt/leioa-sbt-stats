@@ -1,7 +1,7 @@
 {# Conclusiones automáticas de un equipo, en tarjetas. Variables: insights, ideas_title. #}
 <section class="insights">
   <h2>Conclusiones</h2>
-  <p class="hint">Generadas automáticamente con reglas fijas a partir de los números de esta web (cada frase indica de dónde sale). Con pocos partidos, son orientativas.</p>
+  <p class="hint">Generadas automáticamente con reglas fijas a partir de los números de esta web (cada frase indica de dónde sale). Solo salen las que se distinguen del azar: <span class="conf alta">alta</span> si la cifra se aleja de la media de la liga 2 errores estándar o más, <span class="conf media">media</span> si se aleja entre 1,5 y 2. Lo demás puede ser suerte y no se muestra.</p>
   <div class="insight-grid">
   {% for title, items, kind in [
       ("Estilo de juego", insights.style, "style"),
@@ -16,12 +16,15 @@
       <ul>
         {# "Titular: de dónde sale". El titular va en negrita; el dato, debajo. #}
         {% for item in items %}
-          {% set head, sep, tail = item.partition(": ") %}
-          <li>{% if sep %}<strong>{{ head }}</strong><span>{{ tail }}</span>{% else %}<strong>{{ item }}</strong>{% endif %}</li>
+          {% set head, sep, tail = item.text.partition(": ") %}
+          <li><strong>{{ head if sep else item.text }} <span class="conf {{ item.confidence }}" title="Confianza {{ item.confidence }}">{{ item.confidence }}</span></strong>{% if sep %}<span>{{ tail }}</span>{% endif %}</li>
         {% endfor %}
       </ul>
     </details>
     {% endif %}
   {% endfor %}
   </div>
+  {% if not (insights.style or insights.strengths or insights.weaknesses or insights.players or insights.ideas) %}
+  <p class="note">Todavía no hay ninguna cifra que se distinga claramente de la media de la liga.</p>
+  {% endif %}
 </section>

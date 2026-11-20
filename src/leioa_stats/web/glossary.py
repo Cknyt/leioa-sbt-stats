@@ -121,11 +121,18 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
         "una pérdida) mientras está en pista. La media es el 20 %; por encima del 25 %, es una "
         "referencia del ataque.",
     ),
-    (("NETO en pista",), "Neto del equipo mientras el jugador está en pista."),
+    (
+        ("NETO en pista",),
+        "Neto del equipo mientras el jugador está en pista. Vacío con menos de 100 posesiones: "
+        "con tan pocas, es casi puro ruido.",
+    ),
+    (("POSS en pista",), "Posesiones del equipo (estimación) con el jugador en pista."),
+    (("POSS en banquillo",), "Posesiones del equipo (estimación) con el jugador en el banquillo."),
     (("NETO en banquillo",), "Neto del equipo mientras el jugador está en el banquillo."),
     (
         ("DIFERENCIA",),
-        "Neto en pista menos neto en banquillo: cuánto mejor (o peor) va el equipo con él.",
+        "Neto en pista menos neto en banquillo: cuánto mejor (o peor) va el equipo con él. "
+        "Solo se calcula con 100 posesiones o más en pista y en el banquillo.",
     ),
     (
         ("% cerca del aro",),
@@ -155,6 +162,88 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
         "bien anotados.",
     ),
     (("V", "D"), "Victorias y derrotas."),
+    (
+        ("% asistidas",),
+        "Parte de sus canastas de campo que llegan tras una asistencia (según la mesa).",
+    ),
+    (("% triples asistidos",), "Parte de sus triples anotados que llegan tras una asistencia."),
+    (
+        ("Con robo",),
+        "Pérdidas a balón vivo: el rival anota una recuperación en ese mismo segundo. Son las "
+        "que provoca la presión y las que más contraataques dan.",
+    ),
+    (("Falta en ataque",), "Pérdidas por falta en ataque."),
+    (
+        ("Otras",),
+        "Pérdidas a balón muerto sin falta: pasos, dobles, campo atrás, fuera de banda, "
+        "24 segundos...",
+    ),
+    (("% con robo",), "Parte de las pérdidas que son con robo (a balón vivo)."),
+    (("Pasa", "Anota", "Canastas"), "Quién da la asistencia, quién anota y cuántas canastas."),
+    (("Triples",), "De esas canastas, cuántas son triples."),
+    (
+        ("2 en la 1.ª parte",),
+        "Partidos en los que llegó a 2 faltas antes del descanso (minuto 20).",
+    ),
+    (
+        ("4 antes del 4.º cuarto",),
+        "Partidos en los que llegó a 4 faltas antes del último cuarto (minuto 30).",
+    ),
+    (("Eliminado",), "Partidos en los que llegó a 5 faltas."),
+    (("C1", "C2", "C3", "C4"), "Cuarto del partido (PR = prórroga)."),
+    (("Cifra",), "Lo que se cruza: tiro, pérdidas, rebote ofensivo, tiros libres..."),
+    (
+        ("Lado",),
+        "Nuestro ataque contra su defensa, o su ataque contra nuestra defensa.",
+    ),
+    (("Ataque",), "Lo que hace el equipo que ataca en esa cifra (temporada)."),
+    (("Permite",), "Lo que concede la defensa del otro equipo en esa cifra (temporada)."),
+    (("Liga",), "Media de la liga en esa cifra."),
+    (
+        ("Esperable",),
+        "Valor esperado en el partido: lo que hace el atacante + lo que permite el defensor − "
+        "la media de la liga (modelo aditivo).",
+    ),
+    (
+        ("Veredicto", "Previa"),
+        "A favor o en contra si el cruce se aleja de la media 1,5 errores estándar o más. "
+        "Choque: el ataque y la defensa son buenos a la vez.",
+    ),
+    (("Confianza",), "Alta (2 errores estándar o más) o media (entre 1,5 y 2)."),
+    (("Real",), "Lo que pasó en el partido."),
+    (
+        ("¿Se cumplió?",),
+        "Si el valor real quedó del lado que decía la previa respecto a la media de la liga.",
+    ),
+    (("Ficha",), "Posición y altura, según la hoja del cuerpo técnico."),
+    (("Último partido",), "Si estuvo en el acta del último partido de su equipo."),
+    (
+        ("NETO aj.",),
+        "Neto ajustado: corrige el neto por la calidad de los rivales a los que se ha enfrentado "
+        "y por la ventaja de jugar en casa (ver metrics/adjusted.py).",
+    ),
+    (("ORtg aj.",), "Eficiencia ofensiva ajustada por rival y pista."),
+    (("DRtg aj.",), "Eficiencia defensiva ajustada por rival y pista."),
+    (
+        ("Forma",),
+        "↑ o ↓ si el neto de los 3 últimos partidos se aleja del de los anteriores 1,5 errores "
+        "estándar o más. Hacen falta 6 partidos.",
+    ),
+    (("Pareja", "Trío"), "Dos o tres jugadores en pista a la vez, con cualquier compañero."),
+    (("Tiempos muertos",), "Tiempos muertos pedidos por el equipo."),
+    (
+        ("PTS tras tiempo muerto",),
+        "Puntos del equipo en el minuto de juego siguiente a su tiempo muerto (media).",
+    ),
+    (
+        ("PTS rival tras tiempo muerto",),
+        "Puntos del rival en el minuto de juego siguiente al tiempo muerto (media).",
+    ),
+    (("PTS por minuto (temporada)",), "Puntos del equipo por minuto en toda la temporada."),
+    (
+        ("PTS rival por minuto (temporada)",),
+        "Puntos que encaja el equipo por minuto en toda la temporada.",
+    ),
 ]
 
 TERMS: dict[str, str] = {term: text for terms, text in ENTRIES for term in terms}

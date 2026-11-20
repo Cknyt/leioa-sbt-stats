@@ -162,6 +162,35 @@ def score_timeline(stats: dict, moves: list[dict], team_name: str) -> go.Figure:
     return fig
 
 
+def minute_heatmap(shares: pd.DataFrame, names: list[str]) -> go.Figure:
+    """Mapa de minutos: jugadores en filas, minutos de juego en columnas, % de partidos en
+    pista en cada minuto (metrics/rotation.minute_shares)."""
+    fig = go.Figure(
+        go.Heatmap(
+            z=(100 * shares).round().to_numpy(),
+            x=list(shares.columns),
+            y=names,
+            zmin=0,
+            zmax=100,
+            colorscale=[[0, "#fbf7ef"], [1, TEAM_COLOR]],
+            showscale=False,
+            hovertemplate="%{y}<br>Minuto %{x}: en pista en el %{z} % de los partidos"
+            "<extra></extra>",
+        )
+    )
+    for end in (10, 20, 30):
+        fig.add_vline(x=end + 0.5, line={"color": LINE_COLOR, "dash": "dot", "width": 1})
+    fig.update_layout(
+        xaxis={"title": "Minuto", "fixedrange": True, "tickvals": [1, 10, 20, 30, 40]},
+        yaxis={"autorange": "reversed", "fixedrange": True},
+        margin={"l": 10, "r": 10, "t": 10, "b": 40},
+        paper_bgcolor="rgba(0,0,0,0)",
+        height=60 + 24 * len(names),
+    )
+    fig.update_yaxes(automargin=True)
+    return fig
+
+
 def to_html(fig: go.Figure) -> str:
     """HTML del gráfico sin la librería plotly.js, que la página carga una sola vez."""
     return fig.to_html(full_html=False, include_plotlyjs=False, config=CONFIG)

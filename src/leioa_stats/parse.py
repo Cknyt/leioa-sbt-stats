@@ -5,6 +5,11 @@ Tablas:
 - teams: una fila por equipo y partido, con los totales del equipo (incluye rebotes de equipo).
 - quarters: una fila por equipo, partido y cuarto (las prórrogas son los periodos 5, 6...).
 - shots: una fila por tiro de campo, con sus coordenadas.
+
+Identidad de cada jugador: "player_id" es el uuid del acta, que no cambia de un partido a
+otro (el actorId sí cambia). Dentro de una temporada se agrupa por nombre, que también es
+único en cada equipo; el uuid sirve para unir temporadas, donde el nombre puede escribirse
+distinto.
 """
 
 import json
@@ -71,6 +76,7 @@ def player_rows(match: dict, stats: dict) -> list[dict]:
                 {
                     **context,
                     "player": player["name"],
+                    "player_id": player.get("uuid"),
                     "number": player["dorsal"],
                     "starter": player["starting"],
                     "MIN": player["timePlayed"],
@@ -97,6 +103,8 @@ def quarter_rows(match: dict, stats: dict) -> list[dict]:
 
 def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     players = {m["eventUuid"]: m["actorName"] for m in moves}
+    actors = {m["eventUuid"]: m["actorId"] for m in moves}
+    uuids = {p["actorId"]: p.get("uuid") for t in stats["teams"] for p in t["players"]}
     rows = []
     for team in stats["teams"]:
         context = match_context(match, stats, team["name"])
@@ -107,6 +115,7 @@ def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
                         {
                             **context,
                             "player": players.get(point["eventUuid"]),
+                            "player_id": uuids.get(actors.get(point["eventUuid"])),
                             # A veces falta el cuarto en el tiro: se toma de la lista.
                             "period": point.get("period", number),
                             "value": value,

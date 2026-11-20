@@ -78,3 +78,19 @@ def test_add_ratings():
     assert row["ORtg"] == 120
     assert row["DRtg"] == 80
     assert row["NETO"] == 40
+
+
+def test_small_samples_have_no_efficiency(match_99138):
+    # Un partido no llega a 100 posesiones con ningún quinteto: solo minutos y +/-.
+    summary = lineups.lineup_summary(stints_for(*match_99138))
+    assert summary[lineups.RATING_COLUMNS].isna().all().all()
+    assert summary["+/-"].notna().all()
+    on_off = lineups.player_on_off(stints_for(*match_99138))
+    assert on_off["DIFERENCIA"].isna().all()
+    assert (on_off["POSS en pista"] < lineups.MIN_POSSESSIONS).all()
+
+
+def test_hide_small_samples_keeps_large_ones():
+    df = pd.DataFrame({"POSS": [99.9, 100], "ORtg": [110, 110], "DRtg": [90, 90], "NETO": [20, 20]})
+    hidden = lineups.hide_small_samples(df)
+    assert hidden["NETO"].isna().tolist() == [True, False]
