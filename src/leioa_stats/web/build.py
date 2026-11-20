@@ -14,6 +14,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from plotly.offline import get_plotlyjs_version
 
+from leioa_stats import ai_report
 from leioa_stats.download import TEAM_NAME, involves
 from leioa_stats.format import display_name, number
 from leioa_stats.history import past_players, shooting_history
@@ -78,6 +79,7 @@ from leioa_stats.metrics.rotation import (
     starters,
 )
 from leioa_stats.metrics.shots import add_zones, zone_summary
+from leioa_stats.metrics.similarity import most_similar, player_features
 from leioa_stats.metrics.turnovers import live_share, turnover_profiles, turnover_rows
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
 from leioa_stats.staff import describe_player, load_staff, unavailable
@@ -721,6 +723,7 @@ def preview_page(rival, tables, stints, league, average, team_name, upcoming, st
         for m in items
     ]
     rotation = rotation_section(rival, tables, stints)
+    similar = most_similar(tables["features"], rival, team_name, list(key.index[:5]))
     prediction = None
     if match is not None:
         result = forecast(tables["teams"], league["RITMO"], match["local"], match["visitor"])
@@ -741,6 +744,11 @@ def preview_page(rival, tables, stints, league, average, team_name, upcoming, st
             "partidos es muy orientativo.",
         }
     return {
+        "similar": similar,
+        "similar_method": "Por su papel en el equipo, no por su acierto: uso, reparto de "
+        "tiros (triples, cerca del aro), asistencias, rebotes, pérdidas y tiros libres por 40 "
+        "minutos, comparados con todos los jugadores de la liga con 60 minutos o más. Entre "
+        "paréntesis, los rasgos que comparten.",
         "forecast": prediction,
         "rival": rival_name,
         "rival_slug": slug(rival),
@@ -883,6 +891,11 @@ def build_site(
     tables["clutch"] = pd.DataFrame([row for players, _ in clutch for row in players])
     tables["clutch_games"] = pd.DataFrame([row for _, games in clutch for row in games])
     tables["timeouts"] = pd.DataFrame([row for m in all_matches for row in timeout_rows(*m)])
+    teams_in_league = sorted(tables["teams"]["team"].unique())
+    usage = pd.concat(
+        {team: player_usage(tables["players"], tables["teams"], team) for team in teams_in_league}
+    )
+    tables["features"] = player_features(tables["players"], tables["shots"], usage)
     tables["spread"] = league_spread(team_games(tables["teams"]))
     tables["shooting"] = shooting_baseline(
         tables["players"], shooting_history(past_players(raw_dir / "history"))
@@ -958,17 +971,25 @@ def build_site(
             **match_page(match, stats, moves, tables, stints[team_name], team_name),
         )
     staff = load_staff()
+    league_players = sorted({display_name(p) for p in tables["players"]["player"]})
     for rival in league.index:
         if rival == team_name:
             continue
+        context = preview_page(
+            rival, tables, stints[rival], league, average, team_name, upcoming, staff
+        )
+        # Resumen redactado por IA: solo para el próximo rival y si está activado.
+        if rival == next_rival:
+            context["ai_report"] = ai_report.report_for(
+                context, display_name(team_name), slug(rival), league_players
+            )
+            context["ai_model"] = ai_report.MODEL
         render(
             out_dir / "previas" / f"{slug(rival)}.html",
             "preview.html.j2",
             "../",
             active="preview" if rival == next_rival else None,
-            **preview_page(
-                rival, tables, stints[rival], league, average, team_name, upcoming, staff
-            ),
+            **context,
         )
     for team in league.index:
         render(

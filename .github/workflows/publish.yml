@@ -18,6 +18,12 @@ concurrency:
   group: publish
   cancel-in-progress: false
 
+# models: read deja usar GitHub Models (gratuito) con el GITHUB_TOKEN del propio workflow
+# para el resumen redactado de la previa (src/leioa_stats/ai_report.py).
+permissions:
+  contents: read
+  models: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -61,6 +67,9 @@ jobs:
           printenv PLANTILLA_CSV > data/plantilla.csv
 
       - name: Generar la web
+        env:
+          INFORME_IA: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run python -m leioa_stats.web
 
       # Contraseña del informe de visitas: se guarda solo su huella (hash) en informe-clave.php.
