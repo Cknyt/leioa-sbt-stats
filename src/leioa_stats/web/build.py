@@ -25,7 +25,13 @@ from leioa_stats.metrics.advanced import (
     team_games,
 )
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
-from leioa_stats.metrics.insights import PLAYER_MIN_MINUTES, match_insights, team_insights
+from leioa_stats.metrics.confidence import league_spread
+from leioa_stats.metrics.insights import (
+    PLAYER_MIN_MINUTES,
+    match_insights,
+    shooting_baseline,
+    team_insights,
+)
 from leioa_stats.metrics.league import (
     COMPARISON,
     league_average,
@@ -40,6 +46,7 @@ from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_row
 from leioa_stats.metrics.origins import origin_rows, origin_summary
 from leioa_stats.metrics.quarters import QUARTER_COLUMNS, quarter_summary
 from leioa_stats.metrics.shots import add_zones, zone_summary
+from leioa_stats.metrics.turnovers import live_share, turnover_profiles, turnover_rows
 from leioa_stats.parse import RAW_DIR, build_tables, iter_matches
 from leioa_stats.validate import POINTS, validate_match
 from leioa_stats.web import charts
@@ -141,6 +148,25 @@ def box_score(players: pd.DataFrame, on_off: pd.DataFrame | None = None) -> pd.D
     df = df.sort_values("MIN", ascending=False)[columns]
     df.index = [display_name(p) for p in df.index]
     return df
+
+
+def insights_for(team_name, tables, league, average, season):
+    """Conclusiones de un equipo con las referencias de toda la liga."""
+    shots = tables["shots"]
+    profiles = turnover_profiles(tables["turnovers"])
+    share = profiles["% con robo"].get(team_name)
+    turnovers = None if share is None or pd.isna(share) else (share, tables["live_share"])
+    return team_insights(
+        team_name,
+        league,
+        average,
+        season,
+        shots[shots["team"] == team_name],
+        shots,
+        spread=tables["spread"],
+        shooting=tables["shooting"],
+        turnovers=turnovers,
+    )
 
 
 def quarters_and_origins(tables, team_name) -> dict:
@@ -250,14 +276,7 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         .join(player_usage(players, tables["teams"], team_name))
         .join(player_profiles(players, shots, team_name).drop(columns="TCA"))
     )
-    insights = team_insights(
-        team_name,
-        league,
-        league_average(tables["teams"]),
-        full_season,
-        shots[shots["team"] == team_name],
-        shots,
-    )
+    insights = insights_for(team_name, tables, league, league_average(tables["teams"]), full_season)
     on_off = player_on_off(stints)
     on_off.index = [display_name(p) for p in on_off.index]
     advanced = team_advanced(tables["teams"], team_name)
@@ -503,7 +522,7 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
         .join(player_usage(players, tables["teams"], team_name))
         .join(player_profiles(players, shots, team_name).drop(columns="TCA"))
     )
-    insights = team_insights(team_name, league, average, season, team_shots, shots)
+    insights = insights_for(team_name, tables, league, average, season)
     numbers = players[players["team"] == team_name].groupby("player")["number"].last().to_dict()
     player_charts = []
     for player, info in season.sort_values("TCA", ascending=False).head(TOP_SHOOTERS).iterrows():
@@ -573,6 +592,10 @@ def build_site(
     tables = build_tables(raw_dir)
     tables["shots"] = add_zones(tables["shots"])
     tables["origins"] = pd.DataFrame([row for m in all_matches for row in origin_rows(*m)])
+    tables["turnovers"] = pd.DataFrame([row for m in all_matches for row in turnover_rows(*m)])
+    tables["live_share"] = live_share(tables["turnovers"])
+    tables["spread"] = league_spread(team_games(tables["teams"]))
+    tables["shooting"] = shooting_baseline(tables["players"])
     league = league_table(tables["teams"])
     average = league_average(tables["teams"])
     stints = {

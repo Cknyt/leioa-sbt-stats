@@ -14,6 +14,11 @@ Cómo se reconstruyen:
 Posesiones de cada tramo = media de las de los dos equipos, con la fórmula de
 metrics/advanced.py aplicada a las jugadas del tramo. El jugada a jugada no incluye los
 rebotes y pérdidas "de equipo", así que es algo menos precisa que la de partido completo.
+
+Fiabilidad: con menos de MIN_POSSESSIONS posesiones, la eficiencia de un quinteto o de un
+jugador en pista o en el banquillo es casi puro ruido (un par de triples cambian el neto en
+30 puntos). Por debajo de ese mínimo solo se dan los minutos y el +/-, y la eficiencia queda
+vacía.
 """
 
 from collections import Counter
@@ -48,6 +53,8 @@ POSSESSION_COUNTERS = {
     TURNOVER: "PER",
 }
 COUNTERS = ["PTS", "TCA", "T1A", "RO", "PER"]
+MIN_POSSESSIONS = 100
+RATING_COLUMNS = ["ORtg", "DRtg", "NETO"]
 
 
 def elapsed_seconds(move: dict, durations: list[int]) -> int:
@@ -119,6 +126,13 @@ def add_ratings(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def hide_small_samples(df: pd.DataFrame, min_possessions: float = MIN_POSSESSIONS) -> pd.DataFrame:
+    """Deja vacía la eficiencia de las filas con menos posesiones que el mínimo."""
+    df = df.copy()
+    df.loc[df["POSS"] < min_possessions, RATING_COLUMNS] = float("nan")
+    return df
+
+
 SUM_COLUMNS = ["seconds", *COUNTERS, *[f"{c}_opp" for c in COUNTERS]]
 
 
@@ -127,7 +141,7 @@ def lineup_summary(stints: pd.DataFrame) -> pd.DataFrame:
     complete = stints[stints["size"] == 5]
     summary = complete.groupby("lineup")[SUM_COLUMNS].sum()
     summary["PJ"] = complete.groupby("lineup")["match_id"].nunique()
-    return add_ratings(summary).sort_values("seconds", ascending=False)
+    return hide_small_samples(add_ratings(summary)).sort_values("seconds", ascending=False)
 
 
 def player_on_off(stints: pd.DataFrame) -> pd.DataFrame:
@@ -137,12 +151,15 @@ def player_on_off(stints: pd.DataFrame) -> pd.DataFrame:
     rows = {}
     for player in players:
         on = lineups.apply(lambda ps, player=player: player in ps)
-        on_totals = add_ratings(stints[on][SUM_COLUMNS].sum().to_frame().T).iloc[0]
-        off_totals = add_ratings(stints[~on][SUM_COLUMNS].sum().to_frame().T).iloc[0]
+        on_totals = hide_small_samples(add_ratings(stints[on][SUM_COLUMNS].sum().to_frame().T))
+        off_totals = hide_small_samples(add_ratings(stints[~on][SUM_COLUMNS].sum().to_frame().T))
+        on_totals, off_totals = on_totals.iloc[0], off_totals.iloc[0]
         rows[player] = {
             "MIN": on_totals["MIN"],
             "+/-": on_totals["+/-"],
+            "POSS en pista": on_totals["POSS"],
             "NETO en pista": on_totals["NETO"],
+            "POSS en banquillo": off_totals["POSS"],
             "NETO en banquillo": off_totals["NETO"],
             "DIFERENCIA": round(on_totals["NETO"] - off_totals["NETO"], 1),
         }

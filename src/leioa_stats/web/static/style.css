@@ -422,3 +422,15 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 
   .tabs a { padding: 10px 14px 9px; }
   table.data { font-size: 0.9rem; }
 }
+
+/* Confianza de cada conclusión (metrics/confidence.py). */
+.conf {
+  display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 600; line-height: 1.5; vertical-align: middle;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.conf.alta { background: #0c653a; color: #fff; }
+.conf.media { background: #e9dfc8; color: #4a3f28; }
+.insight-card li span.conf { font-size: 0.7rem; }
+.insight-card li span.conf.alta { color: #fff; }
+.insight-card li span.conf.media { color: #4a3f28; }

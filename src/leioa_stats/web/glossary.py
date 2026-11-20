@@ -121,11 +121,18 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
         "una pérdida) mientras está en pista. La media es el 20 %; por encima del 25 %, es una "
         "referencia del ataque.",
     ),
-    (("NETO en pista",), "Neto del equipo mientras el jugador está en pista."),
+    (
+        ("NETO en pista",),
+        "Neto del equipo mientras el jugador está en pista. Vacío con menos de 100 posesiones: "
+        "con tan pocas, es casi puro ruido.",
+    ),
+    (("POSS en pista",), "Posesiones del equipo (estimación) con el jugador en pista."),
+    (("POSS en banquillo",), "Posesiones del equipo (estimación) con el jugador en el banquillo."),
     (("NETO en banquillo",), "Neto del equipo mientras el jugador está en el banquillo."),
     (
         ("DIFERENCIA",),
-        "Neto en pista menos neto en banquillo: cuánto mejor (o peor) va el equipo con él.",
+        "Neto en pista menos neto en banquillo: cuánto mejor (o peor) va el equipo con él. "
+        "Solo se calcula con 100 posesiones o más en pista y en el banquillo.",
     ),
     (
         ("% cerca del aro",),
