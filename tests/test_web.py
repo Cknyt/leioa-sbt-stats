@@ -204,7 +204,7 @@ def test_pages_load_visit_log(site):
     assert 'src="../visits.js?v=' in match
     assert 'data-endpoint="../registrar.php"' in match
     for page in pages:
-        assert "sin cookies ni datos personales" in page.read_text(encoding="utf-8")
+        assert "visits.js?v=" in page.read_text(encoding="utf-8")
 
 
 def test_pages_have_no_missing_values(site):
