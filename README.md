@@ -80,14 +80,26 @@ uv run python -m leioa_stats.metrics
 - **Quintetos y +/-** (reconstruidos con el jugada a jugada; detalle en `metrics/lineups.py`): minutos, +/- y eficiencia de cada quinteto, y +/- y on/off de cada jugador (diferencia por 100 posesiones con él en pista y en el banquillo). El +/- coincide con el que calcula la federación.
 - **Por cuartos** (`metrics/quarters.py`): puntos anotados y encajados, acierto de 2, de 3 y cerca del aro, pérdidas propias y forzadas, y faltas de cada cuarto. Sale del box score de cada cuarto, que suma lo mismo que el del partido.
 - **Origen de los puntos** (estimación con el jugada a jugada; detalle en `metrics/origins.py`): puntos de 2ª oportunidad (tras rebote ofensivo), tras pérdida del rival y de contraataque (en los 8 segundos siguientes a un rebote defensivo o un robo), a favor y en contra, y puntos por rebote ofensivo.
+- **Confianza** (`metrics/confidence.py`): cada conclusión dice cuánto se aleja de la media de la liga en errores estándar. Alta con 2 o más, media entre 1,5 y 2; por debajo no se muestra. Los porcentajes de tiro de los jugadores se encogen hacia la media de la liga (o hacia su historial, si hay temporadas pasadas descargadas) antes de aplicar los umbrales. Quintetos, parejas y on/off solo dan eficiencia con 100 posesiones o más.
+- **Rotación y disponibilidad** (`metrics/rotation.py`): minutos de cada jugador por jornada, mapa de en qué minutos juega cada uno, titulares y quién cierra los partidos.
+- **Balón y pase** (`metrics/turnovers.py`, `metrics/assists.py`, `metrics/fouls.py`): pérdidas con robo, por falta en ataque y otras; conexiones de pase y % de canastas asistidas; problemas de faltas por jugador y minutos en bonus por cuarto.
+- **Ajuste por rival y pista, forma y pronóstico** (`metrics/adjusted.py`): neto ajustado por la calidad de los rivales y por jugar en casa o fuera, flecha de forma de los 3 últimos partidos y pronóstico orientativo con probabilidad de victoria.
+- **Parejas, tríos, minutos de la basura, finales apretados y tiempos muertos** (`metrics/lineups.py`, `metrics/clutch.py`).
+- **Jugadores parecidos** (`metrics/similarity.py`): a qué jugador nuestro se parece cada rival por su papel (uso, reparto de tiros, rebote, pase...), no por su acierto.
 
 ## Web
 
 Genera una web estática en `site/`, pensada para verse en el móvil y en el ordenador. Tiene una página de temporada (con el próximo partido y la clasificación avanzada de la liga), una por cada partido del Leioa y una de **scouting por cada equipo**: dónde es fuerte frente a la media de la liga, sus jugadores con su perfil de juego estimado (interior, exterior o mixto), el mapa de tiros de cada jugador y sus quintetos. Los gráficos son interactivos (plotly).
 
+La página **Previa** (una por rival, en `previas/`, y en el menú la del próximo) cruza lo que hace cada equipo con lo que permite el otro (`metrics/preview.py`): tres claves, dónde hacer daño, qué nos pueden hacer, a quién parar, a quién se parecen, su rotación, ideas y un pronóstico orientativo. En la página de cada partido, **la previa frente a lo que pasó** repite ese cálculo solo con las jornadas anteriores y dice si se cumplió.
+
 La página **Comparativa** pone al Leioa frente a cualquier equipo de la liga (por defecto, el próximo rival; se cambia con un desplegable) con el acumulado de la temporada: ritmo, eficiencia, diferencia de puntos en cada cuarto, tiro, rebote, balón, origen de los puntos y lo que permite cada defensa, con la media de la liga y el puesto de cada equipo en cada cifra.
 
 Cada término técnico lleva un botón **?** con su explicación (se toca en el móvil o se pasa el ratón en el ordenador), y cada página incluye **conclusiones automáticas**: estilo de juego, fortalezas, puntos débiles, jugadores clave, ideas para el partido y claves de cada partido. Las conclusiones salen de reglas fijas con umbrales explícitos (`metrics/insights.py`), no de un modelo de lenguaje, así que cada frase se puede comprobar con los números de la página.
+
+Hoja del cuerpo técnico (opcional, `staff.py`): posición, altura y disponibilidad de los jugadores en `data/plantilla.csv`. No se versiona porque el repositorio es público; en la publicación se escribe desde el secreto `PLANTILLA_CSV`. Solo guarda "disponible: sí/no", nunca el motivo.
+
+Resumen redactado (opcional, `ai_report.py`): en la publicación, GitHub Models (gratuito, con el `GITHUB_TOKEN` del propio workflow y el permiso `models: read`) redacta la previa del próximo rival a partir de sus frases. Se comprueba automáticamente que cada número y cada jugador que cita están en esas frases; si no, no se publica.
 
 Para generarla:
 
@@ -102,6 +114,20 @@ uv run python -m http.server 8000 --directory site
 ```
 
 Después abre <http://localhost:8000>.
+
+## Temporadas pasadas y prueba retrospectiva
+
+Para descargar una temporada pasada, con el número de su grupo en basketbasko.com (`group/?id=<número>`):
+
+```bash
+uv run python -m leioa_stats.history <número del grupo>
+```
+
+Se guarda en `data/raw/history/<número>/`. Los jugadores se unen entre temporadas por el uuid del acta. Para comprobar si las conclusiones de las primeras jornadas se mantienen al final (y si los umbrales de confianza están bien puestos):
+
+```bash
+uv run python -m leioa_stats.backtest data/raw/history/<número> 4
+```
 
 ## Publicación
 
