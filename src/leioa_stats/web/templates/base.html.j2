@@ -8,10 +8,10 @@
   <title>{% block title %}{{ team_name }}{% endblock %} · Estadísticas</title>
   {# Fuentes y gráficos servidos desde el propio hosting: ninguna petición a otros servidores
      (que verían la IP de quien visita la web). #}
-  <link rel="stylesheet" href="{{ root }}style.css">
-  {% if charts %}<script src="{{ root }}plotly.min.js" charset="utf-8"></script>{% endif %}
-  <script src="{{ root }}page.js" defer></script>
-  <script src="{{ root }}visits.js" data-endpoint="{{ root }}registrar.php" defer></script>
+  <link rel="stylesheet" href="{{ root }}style.css?v={{ v['style.css'] }}">
+  {% if charts %}<script src="{{ root }}plotly.min.js?v={{ v['plotly.min.js'] }}" charset="utf-8"></script>{% endif %}
+  <script src="{{ root }}page.js?v={{ v['page.js'] }}" defer></script>
+  <script src="{{ root }}visits.js?v={{ v['visits.js'] }}" data-endpoint="{{ root }}registrar.php" defer></script>
 </head>
 <body>
   <header class="top">

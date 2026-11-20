@@ -4,6 +4,7 @@ Páginas: la temporada del equipo, sus jugadores, la comparativa con cualquier e
 liga, una por cada partido suyo y una por cada equipo de la liga (scouting de rivales).
 """
 
+import hashlib
 import json
 import shutil
 import unicodedata
@@ -122,6 +123,25 @@ FEW_MINUTES_PER_GAME = 10
 # Escala de las barras de las tarjetas (el valor que llena la barra entera).
 TS_SCALE, USAGE_SCALE = 80, 40
 AVERAGE_USAGE = 20  # por definición: 5 jugadores se reparten el 100 % de las jugadas
+
+
+# El hosting (Apache) guarda en el navegador el CSS y los scripts 30 días y las páginas 1 hora.
+# Las páginas pasan a "no-cache": el navegador pregunta en cada visita si han cambiado (si no,
+# el servidor responde 304, sin volver a mandarlas). El CSS y los scripts siguen 30 días: como
+# su dirección lleva la huella, una versión nueva tiene otra dirección.
+HTACCESS = """# Generado por src/leioa_stats/web/build.py: no editar a mano.
+<IfModule mod_headers.c>
+  <FilesMatch "\\.html$">
+    Header set Cache-Control "no-cache"
+    Header unset Expires
+  </FilesMatch>
+</IfModule>
+"""
+
+
+def asset_version(path: Path) -> str:
+    """Huella corta del contenido de un archivo (10 caracteres de su SHA-256)."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
 
 
 def slug(name: str) -> str:
@@ -941,6 +961,11 @@ def build_site(
     # web de plotly, que verían la IP de quien visita la web.
     shutil.copytree(HERE / "static" / "fonts", out_dir / "fonts")
     (out_dir / "plotly.min.js").write_text(get_plotlyjs(), encoding="utf-8")
+    # Cada página enlaza el CSS y los scripts con su huella (style.css?v=...): si cambian, cambia
+    # la dirección y el navegador no puede usar la copia vieja que tenga guardada.
+    common["v"] = {name: asset_version(out_dir / name) for name in (*static_files, "plotly.min.js")}
+    # Caché del navegador en el hosting: las páginas se comprueban siempre (ver HTACCESS).
+    (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")
     # Diario de visitas: receptor (con el aviso por Telegram), informe privado y sus piezas
     # comunes. Se ejecutan en el hosting, que admite PHP.
     for php_file in ("registrar.php", "informe.php", "comun.php"):

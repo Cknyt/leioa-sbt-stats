@@ -163,6 +163,7 @@ Configuración en GitHub (*Settings* > *Secrets and variables* > *Actions*):
 Notas:
 
 - **Nunca apuntes `FTP_SERVER_DIR` a `web/`.** La web corporativa del mismo hosting se publica con la misma herramienta y tiene su registro `web/.ftp-deploy-sync-state.json`: la subida lo tomaría como propio y borraría sus archivos.
+- **Caché de los navegadores:** el hosting guarda en el navegador el CSS y los scripts 30 días y las páginas 1 hora. Para que nadie vea una mezcla de versiones tras publicar: cada página enlaza el CSS y los scripts con la huella de su contenido (`style.css?v=...`), así que una versión nueva tiene otra dirección; y el `.htaccess` que genera la web hace que las páginas se comprueben en cada visita (si no han cambiado, el servidor responde 304 sin mandarlas otra vez).
 - **La subida solo toca lo suyo:** guarda su registro en `web/leioa/.ftp-deploy-sync-state.json`, sube solo las diferencias y solo borra archivos que subió ella.
 - **Seguridad:** el FTP va sin cifrar, pero con un usuario que solo puede tocar `web/leioa`: si su contraseña se filtrara, la web corporativa y el resto del hosting quedan fuera de su alcance. Si el plan de cdmon ofrece SFTP, sería aún mejor (requiere otra acción de subida en el workflow).
 - **Antes de cambiar el usuario FTP o `FTP_SERVER_DIR`,** conéctate con ese usuario en FileZilla y mira qué ve al entrar: si ve `index.html`, `equipos` y `partidos`, la carpeta es `./`.

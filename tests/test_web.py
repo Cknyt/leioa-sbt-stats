@@ -198,9 +198,11 @@ def test_pages_load_visit_log(site):
     assert (out / "informe.php").exists()
     assert (out / "comun.php").exists()
     index = (out / "index.html").read_text(encoding="utf-8")
-    assert 'src="visits.js" data-endpoint="registrar.php"' in index
+    assert 'src="visits.js?v=' in index
+    assert 'data-endpoint="registrar.php"' in index
     match = (out / "partidos" / "99138.html").read_text(encoding="utf-8")
-    assert 'src="../visits.js" data-endpoint="../registrar.php"' in match
+    assert 'src="../visits.js?v=' in match
+    assert 'data-endpoint="../registrar.php"' in match
     for page in pages:
         assert "sin cookies ni datos personales" in page.read_text(encoding="utf-8")
 
@@ -352,3 +354,24 @@ def test_short_labels():
     ]
     # Si dos quedan iguales, se dejan completos.
     assert short_labels(["JON SAROBE A", "JUAN SAROBE B"]) == ["Jon Sarobe A", "Juan Sarobe B"]
+
+
+def test_assets_carry_their_fingerprint(site):
+    """El CSS y los scripts se enlazan con la huella de su contenido: una versión nueva tiene
+    otra dirección y el navegador no usa la copia vieja."""
+    out, pages = site
+    version = build.asset_version(out / "style.css")
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        assert f"style.css?v={version}" in html
+        assert 'style.css"' not in html
+    assert f"glossary.js?v={build.asset_version(out / 'glossary.js')}" in (
+        out / "index.html"
+    ).read_text(encoding="utf-8")
+
+
+def test_htaccess_makes_pages_revalidate(site):
+    out, _ = site
+    htaccess = (out / ".htaccess").read_text(encoding="utf-8")
+    assert 'Header set Cache-Control "no-cache"' in htaccess
+    assert '<FilesMatch "\\.html$">' in htaccess
