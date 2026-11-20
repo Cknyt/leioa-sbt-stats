@@ -16,6 +16,8 @@ from plotly.offline import get_plotlyjs_version
 
 from leioa_stats.download import TEAM_NAME, involves
 from leioa_stats.format import display_name, number
+from leioa_stats.history import past_players, shooting_history
+from leioa_stats.metrics.adjusted import adjusted_ratings, forecast, recent_form
 from leioa_stats.metrics.advanced import (
     four_factors,
     games_summary,
@@ -26,6 +28,13 @@ from leioa_stats.metrics.advanced import (
 )
 from leioa_stats.metrics.assists import assisted_shares, basket_rows, connections
 from leioa_stats.metrics.basic import add_shooting, player_season, team_season
+from leioa_stats.metrics.clutch import (
+    clutch_record,
+    clutch_rows,
+    clutch_summary,
+    timeout_rows,
+    timeout_summary,
+)
 from leioa_stats.metrics.confidence import league_spread
 from leioa_stats.metrics.fouls import bonus_minutes, foul_rows, foul_trouble
 from leioa_stats.metrics.insights import (
@@ -45,7 +54,13 @@ from leioa_stats.metrics.league import (
     ranks,
     team_profiles,
 )
-from leioa_stats.metrics.lineups import lineup_summary, player_on_off, stint_rows
+from leioa_stats.metrics.lineups import (
+    combination_summary,
+    garbage_minutes,
+    lineup_summary,
+    player_on_off,
+    stint_rows,
+)
 from leioa_stats.metrics.origins import origin_rows, origin_summary
 from leioa_stats.metrics.preview import (
     actual_values,
@@ -85,6 +100,10 @@ SCOUTING_COLUMNS = ["PJ", "MIN/PJ", "PTS/PJ", "USO%", "TS%", "eFG%", "T3A", "T3%
                     "AS/PJ", "PER/PJ", "% asistidas", "% cerca del aro", "% triples",
                     "Perfil"]  # fmt: skip
 LEAGUE_COLUMNS = ["PJ", "V", "D", "RITMO", "ORtg", "DRtg", "NETO", "eFG%", "PER%", "RO%", "TL/TC"]
+# Columnas añadidas a la clasificación de la portada: neto ajustado y forma reciente.
+LEAGUE_EXTRA_COLUMNS = ["NETO aj.", "Forma"]
+COMBO_COLUMNS = ["MIN", "+/-", "POSS", "ORtg", "DRtg", "NETO"]
+TOP_COMBOS = 10
 FACTOR_ROWS = ["Ritmo", "Eficiencia (pts/100 pos.)", "eFG%", "PER%", "RO%", "TL/TC"]
 # Cifras destacadas de la portada: (columna de la liga, término del glosario, explicación).
 KPIS = [
@@ -306,6 +325,15 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
     }
 
 
+def combo_table(stints, size: int) -> str:
+    combos = combination_summary(stints, size).head(TOP_COMBOS)
+    combos.index = [
+        " · ".join(display_name(p) for p in combo.split(" | ")) for combo in combos.index
+    ]
+    title = "Pareja" if size == 2 else "Trío"
+    return table(combos[COMBO_COLUMNS], title)
+
+
 def season_page(matches, tables, stints, team_name, upcoming) -> dict:
     """Datos de la página de temporada. `matches` son solo los partidos del equipo."""
     players = tables["players"]
@@ -316,15 +344,20 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
     league = league_table(tables["teams"])
     next_match = upcoming[0] if upcoming else None
     next_rival = next_rival_of(upcoming, team_name)
+    form = recent_form(tables["teams"], tables["spread"]["NETO"])
+    shown = league.join(adjusted_ratings(tables["teams"])).join(form["Forma"])
     league_rows = [
         {
             "name": display_name(name),
             "slug": slug(name),
             "own": name == team_name,
             "next": name == next_rival,
-            "values": [number(row[c]) for c in LEAGUE_COLUMNS],
+            "values": [
+                row[c] if isinstance(row[c], str) else number(row[c])
+                for c in LEAGUE_COLUMNS + LEAGUE_EXTRA_COLUMNS
+            ],
         }
-        for name, row in league.iterrows()
+        for name, row in shown.iterrows()
     ]
 
     team = team_season(tables["teams"], team_name)
@@ -413,7 +446,10 @@ def season_page(matches, tables, stints, team_name, upcoming) -> dict:
         "next_home": next_match is not None and next_match["local"] == team_name,
         "next_rival": display_name(next_rival) if next_rival else None,
         "next_rival_slug": slug(next_rival) if next_rival else None,
-        "league_columns": LEAGUE_COLUMNS,
+        "league_columns": LEAGUE_COLUMNS + LEAGUE_EXTRA_COLUMNS,
+        "pairs": combo_table(stints, 2),
+        "trios": combo_table(stints, 3),
+        "garbage": number(round(garbage_minutes(stints), 1)),
         "league_rows": league_rows,
     }
 
@@ -607,7 +643,14 @@ def ball_section(team_name, tables) -> dict:
     conceded = tables["shots"][tables["shots"]["opponent"] == team_name]
     trouble = foul_trouble(tables["fouls"], tables["players"], team_name, PLAYER_MIN_MINUTES)
     trouble.index = [display_name(p) for p in trouble.index]
+    clutch = clutch_summary(tables["clutch"], team_name)
+    clutch.index = [display_name(p) for p in clutch.index]
+    wins, losses = clutch_record(tables["clutch_games"], team_name)
     return {
+        "clutch": table(clutch, "Jugador") if not clutch.empty else "",
+        "clutch_record": f"{wins}-{losses}",
+        "clutch_games": wins + losses,
+        "timeouts": table(timeout_summary(tables["timeouts"], tables["teams"], team_name)),
         "turnovers": table(turnovers),
         "connections": table(links.set_index("Pasa"), "Pasa") if not links.empty else "",
         "fouls": table(trouble, "Jugador"),
@@ -678,7 +721,27 @@ def preview_page(rival, tables, stints, league, average, team_name, upcoming, st
         for m in items
     ]
     rotation = rotation_section(rival, tables, stints)
+    prediction = None
+    if match is not None:
+        result = forecast(tables["teams"], league["RITMO"], match["local"], match["visitor"])
+        home = match["local"] == team_name
+        own_points = result.home_points if home else result.away_points
+        rival_points = result.away_points if home else result.home_points
+        margin = result.margin if home else -result.margin
+        probability = result.home_win if home else 1 - result.home_win
+        prediction = {
+            "own": int(round(own_points)),
+            "rival": int(round(rival_points)),
+            "margin": ("+" if margin > 0 else "") + number(round(margin, 1)),
+            "probability": int(round(100 * probability)),
+            "spread": number(round(result.sd, 1)),
+            "method": "Eficiencia de cada equipo ajustada por rival y pista, ritmo medio de los "
+            "dos y ventaja de jugar en casa. La incertidumbre es la desviación típica de los "
+            "errores del modelo en los partidos jugados, con un mínimo de 11 puntos. Con pocos "
+            "partidos es muy orientativo.",
+        }
     return {
+        "forecast": prediction,
         "rival": rival_name,
         "rival_slug": slug(rival),
         "match": match,
@@ -816,8 +879,14 @@ def build_site(
     fouls = [foul_rows(*m) for m in all_matches]
     tables["fouls"] = pd.DataFrame([row for players, _ in fouls for row in players])
     tables["bonus"] = pd.DataFrame([row for _, bonus in fouls for row in bonus])
+    clutch = [clutch_rows(*m) for m in all_matches]
+    tables["clutch"] = pd.DataFrame([row for players, _ in clutch for row in players])
+    tables["clutch_games"] = pd.DataFrame([row for _, games in clutch for row in games])
+    tables["timeouts"] = pd.DataFrame([row for m in all_matches for row in timeout_rows(*m)])
     tables["spread"] = league_spread(team_games(tables["teams"]))
-    tables["shooting"] = shooting_baseline(tables["players"])
+    tables["shooting"] = shooting_baseline(
+        tables["players"], shooting_history(past_players(raw_dir / "history"))
+    )
     league = league_table(tables["teams"])
     average = league_average(tables["teams"])
     stints = {

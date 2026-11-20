@@ -163,16 +163,49 @@ class ShootingBaseline:
     three: float
     k_ts: float = DEFAULT_K["TS%"]
     k_three: float = DEFAULT_K["T3%"]
+    # Punto de partida de cada jugador (nombre -> acierto 0-1) según sus temporadas pasadas
+    # (leioa_stats.history). Sin historial, se parte de la media de la liga.
+    three_priors: dict = field(default_factory=dict)
+    ts_priors: dict = field(default_factory=dict)
+
+    def three_for(self, player: str) -> float:
+        return self.three_priors.get(player, self.three)
+
+    def ts_for(self, player: str) -> float:
+        return self.ts_priors.get(player, self.ts)
 
 
-def shooting_baseline(players: pd.DataFrame) -> ShootingBaseline:
-    """Referencias de tiro de toda la liga a partir del box score de todos los jugadores."""
+def shooting_baseline(
+    players: pd.DataFrame, history: pd.DataFrame | None = None
+) -> ShootingBaseline:
+    """Referencias de tiro de toda la liga a partir del box score de todos los jugadores.
+
+    `history`: tiro de temporadas pasadas por uuid (history.shooting_history). El punto de
+    partida de cada jugador es su historial encogido hacia la media de la liga con la misma K.
+    """
     totals = players.groupby(["team", "player"])[["PTS", "T2A", "T3A", "T3M", "T1A"]].sum()
     tsa = totals["T2A"] + totals["T3A"] + 0.44 * totals["T1A"]
     ts = totals["PTS"].sum() / (2 * tsa.sum()) if tsa.sum() else 0.5
     three = totals["T3M"].sum() / totals["T3A"].sum() if totals["T3A"].sum() else 0.3
     k_three = estimate_k(totals["T3M"], totals["T3A"], DEFAULT_K["T3%"])
-    return ShootingBaseline(ts=ts, three=three, k_three=k_three)
+    k_ts = DEFAULT_K["TS%"]
+    three_priors, ts_priors = {}, {}
+    if history is not None and not history.empty and "player_id" in players.columns:
+        ids = players.dropna(subset=["player_id"]).groupby("player")["player_id"].last()
+        for name, player_id in ids.items():
+            if player_id in history.index:
+                past = history.loc[player_id]
+                if past["T3A"] > 0:
+                    three_priors[name] = shrink(past["T3M"], past["T3A"], three, k_three)
+                if past["TSA"] > 0:
+                    ts_priors[name] = shrink(past["PTS"] / 2, past["TSA"], ts, k_ts)
+    return ShootingBaseline(
+        ts=ts,
+        three=three,
+        k_three=k_three,
+        three_priors=three_priors,
+        ts_priors=ts_priors,
+    )
 
 
 def _rank(league: pd.DataFrame, column: str, team: str, higher_is_better: bool) -> int:
@@ -380,8 +413,8 @@ def _player_insights(
     ].copy()
     regulars["tsa"] = regulars["TCA"] + 0.44 * regulars["T1A"]
     regulars["ts_shrunk"] = [
-        shrink(row["PTS"] / 2, row["tsa"], shooting.ts, shooting.k_ts)
-        for _, row in regulars.iterrows()
+        shrink(row["PTS"] / 2, row["tsa"], shooting.ts_for(name), shooting.k_ts)
+        for name, row in regulars.iterrows()
     ]
     texts, ideas = [], []
     star = None
@@ -432,8 +465,8 @@ def _player_insights(
         (season["T3A"] >= SHOOTER_MIN_THREES) & (season["MIN"] >= PLAYER_MIN_MINUTES)
     ].copy()
     threes["shrunk"] = [
-        shrink(row["T3M"], row["T3A"], shooting.three, shooting.k_three)
-        for _, row in threes.iterrows()
+        shrink(row["T3M"], row["T3A"], shooting.three_for(name), shooting.k_three)
+        for name, row in threes.iterrows()
     ]
     league_three = number(round(100 * shooting.three, 1))
     volume_shooters = 0

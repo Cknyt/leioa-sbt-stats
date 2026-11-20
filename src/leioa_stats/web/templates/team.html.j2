@@ -82,6 +82,12 @@
   <h3>Faltas por jugador</h3>
   <p class="hint">Faltas cometidas y recibidas por 40 minutos y partidos con problemas de faltas. Solo jugadores con 30 minutos o más.</p>
   <div class="table-wrap">{{ fouls | safe }}</div>
+  <h3>Finales apretados</h3>
+  <p class="hint">Últimos 5 minutos con 5 puntos o menos de diferencia. Balance en esos partidos: <b>{{ clutch_record }}</b>. Son pocos partidos: se cuenta quién se juega los tiros, no su acierto.</p>
+  {% if clutch %}<div class="table-wrap">{{ clutch | safe }}</div>{% endif %}
+  <h3>Tras sus tiempos muertos</h3>
+  <p class="hint">Puntos en el minuto de juego siguiente a cada tiempo muerto del equipo, frente a su media por minuto. Muestra muy pequeña: solo descriptivo.</p>
+  <div class="table-wrap">{{ timeouts | safe }}</div>
   <h3>Minutos en bonus por cuarto</h3>
   <p class="hint">Media por partido del tiempo que queda de cada cuarto desde la 4.ª falta del equipo: a partir de ahí, cada falta da tiros libres al rival.</p>
   <div class="table-wrap">{{ bonus | safe }}</div>

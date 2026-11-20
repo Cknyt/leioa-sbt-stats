@@ -27,8 +27,8 @@ TEAM_NAME = "LEIOA SBT"
 GROUP_PAGE_URL = "https://basketbasko.com/es/group/?id={group_id}"
 ROUND_URL = "https://esb.optimalwayconsulting.com/esf/1/{key}/FCBQWeb/resultats/{group_id}/{round}"
 MATCH_URLS = {
-    "stats": "https://msstats.optimalwayconsulting.com/v1/esf/getJsonWithMatchStats/{uid}?currentSeason=true",
-    "moves": "https://msstats.optimalwayconsulting.com/v1/esf/getJsonWithMatchMoves/{uid}?currentSeason=true",
+    "stats": "https://msstats.optimalwayconsulting.com/v1/esf/getJsonWithMatchStats/{uid}?currentSeason={current}",
+    "moves": "https://msstats.optimalwayconsulting.com/v1/esf/getJsonWithMatchMoves/{uid}?currentSeason={current}",
 }
 
 RAW_DIR = Path("data/raw")
@@ -165,14 +165,21 @@ def fetch_league(downloader: Downloader, group_id: int, team_name: str) -> tuple
     return sorted(played.values(), key=round_order), sorted(upcoming.values(), key=round_order)
 
 
-def download_match(downloader: Downloader, match: dict, raw_dir: Path) -> bool:
-    """Descarga los JSON de un partido. Devuelve False si ya estaban descargados."""
+def download_match(
+    downloader: Downloader, match: dict, raw_dir: Path, current_season: bool = True
+) -> bool:
+    """Descarga los JSON de un partido. Devuelve False si ya estaban descargados.
+
+    `current_season`: el servicio pide saber si el partido es de la temporada en curso
+    (parámetro currentSeason). Para temporadas pasadas, False.
+    """
     match_dir = raw_dir / "matches" / match["id"]
     if is_downloaded(match_dir):
         return False
     match_dir.mkdir(parents=True, exist_ok=True)
     for name, url in MATCH_URLS.items():
-        text = downloader.get(url.format(uid=match["uid"]))
+        current = "true" if current_season else "false"
+        text = downloader.get(url.format(uid=match["uid"], current=current))
         json.loads(text)  # comprueba que es JSON válido antes de guardarlo
         (match_dir / f"{name}.json").write_text(text, encoding="utf-8")
     return True

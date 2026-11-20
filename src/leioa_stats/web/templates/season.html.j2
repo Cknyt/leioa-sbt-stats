@@ -113,11 +113,16 @@
   <div class="table-wrap">{{ lineups | safe }}</div>
   {% if lineups_incomplete %}<p class="note">{{ lineups_incomplete }} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan.</p>{% endif %}
   <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>
+  <h3>Parejas</h3>
+  <p class="hint">Todos los minutos en los que coinciden en pista, con cualquier compañero: llegan antes que los quintetos a las 100 posesiones necesarias para dar la eficiencia. Sin los minutos de la basura ({{ garbage }} min: último cuarto con 20 puntos o más de diferencia).</p>
+  <div class="table-wrap">{{ pairs | safe }}</div>
+  <h3>Tríos</h3>
+  <div class="table-wrap">{{ trios | safe }}</div>
 </section>
 
 <section id="liga">
   <h2>Liga</h2>
-  <p class="hint">Los {{ league_rows | length }} equipos con {{ n_league_games }} partidos jugados. Pulsa en un equipo para ver su informe de scouting.</p>
+  <p class="hint">Los {{ league_rows | length }} equipos con {{ n_league_games }} partidos jugados. Pulsa en un equipo para ver su informe de scouting. "NETO aj." corrige el neto por la calidad de los rivales y por haber jugado más en casa o fuera. "Forma": flecha si los 3 últimos partidos se alejan claramente de los anteriores (1,5 errores estándar).</p>
   <div class="table-wrap">
     <table class="data">
       <thead><tr><th>Equipo</th>{% for c in league_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>

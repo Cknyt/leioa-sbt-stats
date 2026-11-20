@@ -217,6 +217,33 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     ),
     (("Ficha",), "Posición y altura, según la hoja del cuerpo técnico."),
     (("Último partido",), "Si estuvo en el acta del último partido de su equipo."),
+    (
+        ("NETO aj.",),
+        "Neto ajustado: corrige el neto por la calidad de los rivales a los que se ha enfrentado "
+        "y por la ventaja de jugar en casa (ver metrics/adjusted.py).",
+    ),
+    (("ORtg aj.",), "Eficiencia ofensiva ajustada por rival y pista."),
+    (("DRtg aj.",), "Eficiencia defensiva ajustada por rival y pista."),
+    (
+        ("Forma",),
+        "↑ o ↓ si el neto de los 3 últimos partidos se aleja del de los anteriores 1,5 errores "
+        "estándar o más. Hacen falta 6 partidos.",
+    ),
+    (("Pareja", "Trío"), "Dos o tres jugadores en pista a la vez, con cualquier compañero."),
+    (("Tiempos muertos",), "Tiempos muertos pedidos por el equipo."),
+    (
+        ("PTS tras tiempo muerto",),
+        "Puntos del equipo en el minuto de juego siguiente a su tiempo muerto (media).",
+    ),
+    (
+        ("PTS rival tras tiempo muerto",),
+        "Puntos del rival en el minuto de juego siguiente al tiempo muerto (media).",
+    ),
+    (("PTS por minuto (temporada)",), "Puntos del equipo por minuto en toda la temporada."),
+    (
+        ("PTS rival por minuto (temporada)",),
+        "Puntos que encaja el equipo por minuto en toda la temporada.",
+    ),
 ]
 
 TERMS: dict[str, str] = {term: text for terms, text in ENTRIES for term in terms}
