@@ -54,5 +54,5 @@
 
 {% include "glossary.html.j2" %}
 <script id="teams-data" type="application/json">{{ teams_json | safe }}</script>
-<script src="comparison.js"></script>
+<script src="comparison.js?v={{ v['comparison.js'] }}"></script>
 {% endblock %}
