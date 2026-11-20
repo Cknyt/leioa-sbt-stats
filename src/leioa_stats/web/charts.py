@@ -173,7 +173,7 @@ def minute_heatmap(shares: pd.DataFrame, names: list[str]) -> go.Figure:
             zmin=0,
             zmax=100,
             colorscale=[[0, "#fbf7ef"], [1, TEAM_COLOR]],
-            colorbar={"title": "%", "thickness": 10},
+            showscale=False,
             hovertemplate="%{y}<br>Minuto %{x}: en pista en el %{z} % de los partidos"
             "<extra></extra>",
         )
@@ -181,7 +181,7 @@ def minute_heatmap(shares: pd.DataFrame, names: list[str]) -> go.Figure:
     for end in (10, 20, 30):
         fig.add_vline(x=end + 0.5, line={"color": LINE_COLOR, "dash": "dot", "width": 1})
     fig.update_layout(
-        xaxis={"title": "Minuto", "fixedrange": True, "dtick": 5},
+        xaxis={"title": "Minuto", "fixedrange": True, "tickvals": [1, 10, 20, 30, 40]},
         yaxis={"autorange": "reversed", "fixedrange": True},
         margin={"l": 10, "r": 10, "t": 10, "b": 40},
         paper_bgcolor="rgba(0,0,0,0)",

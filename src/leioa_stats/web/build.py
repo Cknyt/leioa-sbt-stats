@@ -604,6 +604,12 @@ def comparison_page(tables, team_name, upcoming) -> dict:
 TURNOVER_COLUMNS = ["Con robo", "Falta en ataque", "Otras", "% con robo"]
 
 
+def short_name(name: str) -> str:
+    """'IÑIGO CARNEROS VILLAR' -> 'I. Carneros'."""
+    parts = display_name(name).split()
+    return f"{parts[0][0]}. {parts[1]}" if len(parts) > 1 else display_name(name)
+
+
 def _percent_list(values: pd.Series) -> str:
     return ", ".join(f"{display_name(p)} ({number(round(100 * v))} %)" for p, v in values.items())
 
@@ -613,7 +619,8 @@ def rotation_section(team_name, tables, stints) -> dict:
     players = tables["players"]
     shares = minute_shares(stints)
     numbers = players[players["team"] == team_name].groupby("player")["number"].last().to_dict()
-    names = [f"{numbers.get(p, '')} · {display_name(p)}" for p in shares.index]
+    # Etiquetas cortas para que el mapa quepa en el móvil: dorsal, inicial y primer apellido.
+    names = [f"{numbers.get(p, '')} · {short_name(p)}" for p in shares.index]
     available = availability(players, team_name)
     available.index = [display_name(p) for p in available.index]
     starts = starters(players, team_name)
