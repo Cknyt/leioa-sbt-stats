@@ -75,8 +75,12 @@ def test_team_page(site):
     html = (out / "equipos" / "easo-basket.html").read_text(encoding="utf-8")
     assert "Scouting" in html
     assert "Balance <strong>0-1</strong>" in html
-    # Mapa del equipo + uno por cada uno de los 6 jugadores que más tiran.
-    assert html.count('class="plotly-graph-div"') == 1 + build.TOP_SHOOTERS
+    # Mapa de minutos, mapa del equipo y uno por cada uno de los 6 jugadores que más tiran.
+    assert html.count('class="plotly-graph-div"') == 2 + build.TOP_SHOOTERS
+    # Rotación, pérdidas por tipo, faltas y lo que concede la defensa.
+    for text in ('id="rotacion"', "Minutos por jornada", "Pérdidas por partido, por tipo",
+                 "Faltas por jugador", "Lo que concede su defensa"):  # fmt: skip
+        assert text in html
     # Su partido contra el Leioa enlaza a la página del partido.
     assert 'href="../partidos/99138.html"' in html
 
@@ -138,6 +142,8 @@ def test_comparison_page(site):
     assert '<option value="leioa-sbt"' not in html
     # Leioa ganó 76-70: sale mejor en puntos anotados y encajados.
     assert html.count('<tr data-direction="') == len(league.COMPARISON_COLUMNS)
+    # Las cifras por partido van plegadas: dependen del ritmo.
+    assert html.count(" data-extra>") == len(league.EXTRA_COLUMNS)
     assert '<td class="better">76 <small>1º</small></td>' in html
     assert '<td class="better">70 <small>1º</small></td>' in html
     # Desde la portada y desde el informe del rival se llega a la comparativa.

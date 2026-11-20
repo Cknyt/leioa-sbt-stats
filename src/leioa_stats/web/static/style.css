@@ -434,3 +434,15 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 
 .insight-card li span.conf { font-size: 0.7rem; }
 .insight-card li span.conf.alta { color: #fff; }
 .insight-card li span.conf.media { color: #4a3f28; }
+
+/* Comparativa: las cifras por partido van plegadas (casilla #show-extra, sin JavaScript). */
+.show-extra { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-extra {
+  display: inline-block; margin: 0 0 8px; padding: 6px 12px; border: 1px solid var(--border);
+  border-radius: 999px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+}
+.toggle-extra::before { content: "＋ "; }
+.show-extra:checked + .toggle-extra::before { content: "－ "; }
+.show-extra:focus-visible + .toggle-extra { outline: 2px solid var(--accent, #0c653a); }
+.compare tr[data-extra] { display: none; }
+.show-extra:checked ~ .table-wrap .compare tr[data-extra] { display: table-row; }

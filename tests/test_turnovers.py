@@ -33,3 +33,30 @@ def test_turnover_type():
     # Una recuperación en otro segundo es de otra jugada.
     later = [move(1, validate.TURNOVER), move(2, validate.STEAL, sec=10)]
     assert turnovers.turnover_type(later, 0) == "Otras"
+
+
+def test_rotation_and_fouls():
+    from leioa_stats import parse
+    from leioa_stats.metrics import assists, fouls, lineups, rotation
+
+    stats, moves = validate.load_match(FIXTURES / "99138")
+    players = pd.DataFrame(parse.player_rows(MATCH_99138, stats))
+    stints = pd.DataFrame(lineups.stint_rows(MATCH_99138, stats, moves, "LEIOA SBT"))
+    shares = rotation.minute_shares(stints)
+    # En cada minuto hay exactamente 5 jugadores en pista.
+    assert shares.sum().round(6).eq(5).all()
+    assert len(rotation.closers(shares)) == 5
+    table = rotation.availability(players, "LEIOA SBT")
+    assert list(table.columns) == ["J1"]
+    assert rotation.starters(players, "LEIOA SBT").sum() == 5
+    player_fouls, bonus = fouls.foul_rows(MATCH_99138, stats, moves)
+    # Cada falta personal del acta está en el jugada a jugada (las de jugadores).
+    leioa = next(t for t in stats["teams"] if t["name"] == "LEIOA SBT")
+    leioa_fouls = sum(r["FP"] for r in player_fouls if r["team"] == "LEIOA SBT")
+    assert leioa_fouls == sum(p["data"]["faults"] for p in leioa["players"])
+    assert len(bonus) == 2 * 4
+    baskets = pd.DataFrame(assists.basket_rows(MATCH_99138, stats, moves))
+    # 30 canastas de 2 y 18 triples en el partido. De las 28 asistencias, 3 son en jugadas que
+    # acaban en falta y tiros libres: no son de canasta de campo.
+    assert len(baskets) == 48
+    assert baskets["passer"].notna().sum() == 25

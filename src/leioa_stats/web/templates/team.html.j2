@@ -52,7 +52,40 @@
   <div class="table-wrap">{{ factors | safe }}</div>
 </section>
 
+<section id="rotacion">
+  <h2>Rotación y disponibilidad</h2>
+  {% if missed_last %}<p class="note">No estuvieron en su último partido: {{ missed_last | join(", ") }}. Revisa si son bajas antes de fiarte de sus medias.</p>{% endif %}
+  {% if starters %}<p><b>Titulares</b> (veces): {{ starters }}.</p>{% endif %}
+  {% if closers %}<p><b>Cierran los partidos</b> (tiempo en pista en los últimos 4 minutos): {{ closers }}.</p>{% endif %}
+  {% if minute_map %}
+  <h3>Cuándo juega cada uno</h3>
+  <p class="hint">Color más intenso = en pista en ese minuto en más partidos. Las líneas de puntos separan los cuartos. Sale del jugada a jugada: es lo que ha hecho, no una estimación.</p>
+  <div class="chart">{{ minute_map | safe }}</div>
+  {% endif %}
+  <h3>Minutos por jornada</h3>
+  <p class="hint">"–" = no estaba en el acta (baja, sanción o decisión técnica: el acta no lo distingue). 0 = convocado sin jugar.</p>
+  <div class="table-wrap">{{ availability | safe }}</div>
+</section>
+
 {% with subject = name %}{% include "quarters_origins.html.j2" %}{% endwith %}
+
+<section id="balon">
+  <h2>Balón, faltas y pase</h2>
+  <h3>Pérdidas por partido, por tipo</h3>
+  <p class="hint">"Con robo" son pérdidas a balón vivo: las que provoca la presión. "Otras": pasos, campo atrás, fuera de banda, 24 segundos... Las pérdidas "de equipo" no están en el jugada a jugada.</p>
+  <div class="table-wrap">{{ turnovers | safe }}</div>
+  {% if connections %}
+  <h3>Conexiones de pase</h3>
+  <p class="hint">Quién asiste a quién: canastas de campo y, de ellas, triples. Qué es asistencia lo decide la mesa.</p>
+  <div class="table-wrap">{{ connections | safe }}</div>
+  {% endif %}
+  <h3>Faltas por jugador</h3>
+  <p class="hint">Faltas cometidas y recibidas por 40 minutos y partidos con problemas de faltas. Solo jugadores con 30 minutos o más.</p>
+  <div class="table-wrap">{{ fouls | safe }}</div>
+  <h3>Minutos en bonus por cuarto</h3>
+  <p class="hint">Media por partido del tiempo que queda de cada cuarto desde la 4.ª falta del equipo: a partir de ahí, cada falta da tiros libres al rival.</p>
+  <div class="table-wrap">{{ bonus | safe }}</div>
+</section>
 
 <section>
   <h2>Jugadores</h2>
@@ -64,6 +97,9 @@
   <h2>Mapa de tiros del equipo</h2>
   <div class="chart">{{ shots | safe }}</div>
   <div class="table-wrap">{{ zones | safe }}</div>
+  <h3>Lo que concede su defensa, por zonas</h3>
+  <p class="hint">Tiros de sus rivales contra este equipo.</p>
+  <div class="table-wrap">{{ zones_conceded | safe }}</div>
 </section>
 
 <section>

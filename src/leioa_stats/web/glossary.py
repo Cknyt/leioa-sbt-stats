@@ -162,6 +162,35 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
         "bien anotados.",
     ),
     (("V", "D"), "Victorias y derrotas."),
+    (
+        ("% asistidas",),
+        "Parte de sus canastas de campo que llegan tras una asistencia (según la mesa).",
+    ),
+    (("% triples asistidos",), "Parte de sus triples anotados que llegan tras una asistencia."),
+    (
+        ("Con robo",),
+        "Pérdidas a balón vivo: el rival anota una recuperación en ese mismo segundo. Son las "
+        "que provoca la presión y las que más contraataques dan.",
+    ),
+    (("Falta en ataque",), "Pérdidas por falta en ataque."),
+    (
+        ("Otras",),
+        "Pérdidas a balón muerto sin falta: pasos, dobles, campo atrás, fuera de banda, "
+        "24 segundos...",
+    ),
+    (("% con robo",), "Parte de las pérdidas que son con robo (a balón vivo)."),
+    (("Pasa", "Anota", "Canastas"), "Quién da la asistencia, quién anota y cuántas canastas."),
+    (("Triples",), "De esas canastas, cuántas son triples."),
+    (
+        ("2 en la 1.ª parte",),
+        "Partidos en los que llegó a 2 faltas antes del descanso (minuto 20).",
+    ),
+    (
+        ("4 antes del 4.º cuarto",),
+        "Partidos en los que llegó a 4 faltas antes del último cuarto (minuto 30).",
+    ),
+    (("Eliminado",), "Partidos en los que llegó a 5 faltas."),
+    (("C1", "C2", "C3", "C4"), "Cuarto del partido (PR = prórroga)."),
 ]
 
 TERMS: dict[str, str] = {term: text for terms, text in ENTRIES for term in terms}

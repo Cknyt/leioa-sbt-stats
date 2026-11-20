@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from leioa_stats import parse, validate
-from leioa_stats.metrics import league, origins, quarters
+from leioa_stats.metrics import assists, league, origins, quarters, turnovers
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MATCH_99138 = {"id": "99138", "round": 1, "local": "LEIOA SBT", "visitor": "EASO BASKET"}
@@ -19,6 +19,8 @@ def tables():
         "shots": pd.DataFrame(parse.shot_rows(MATCH_99138, stats, moves)),
         "quarters": pd.DataFrame(parse.quarter_rows(MATCH_99138, stats)),
         "origins": pd.DataFrame(origins.origin_rows(MATCH_99138, stats, moves)),
+        "baskets": pd.DataFrame(assists.basket_rows(MATCH_99138, stats, moves)),
+        "turnovers": pd.DataFrame(turnovers.turnover_rows(MATCH_99138, stats, moves)),
     }
 
 
@@ -39,7 +41,10 @@ def test_ranks(tables):
 
 
 def test_team_profiles(tables):
-    profiles = league.team_profiles(tables["teams"], tables["origins"], tables["quarters"])
+    profiles = league.team_profiles(
+        tables["teams"], tables["origins"], tables["quarters"], tables["baskets"],
+        tables["turnovers"],
+    )  # fmt: skip
     assert list(profiles.columns) == league.COMPARISON_COLUMNS
     # Leioa ganó 76-70: lo que encaja uno es lo que anota el otro.
     assert profiles.loc["LEIOA SBT", ["PTS/PJ", "Encajados/PJ"]].tolist() == [76, 70]
@@ -49,10 +54,19 @@ def test_team_profiles(tables):
     # En las que menos es mejor, el 1º es el que menos tiene.
     assert ranks.loc["LEIOA SBT", "Encajados/PJ"] == 1
     assert ranks.loc["LEIOA SBT", "PER/PJ"] == 1
+    # % de triples: 38 de 76 tiros de campo del Leioa.
+    assert profiles.loc["LEIOA SBT", "% triples"] == 50
+    # Las pérdidas con robo que fuerza uno son las que comete el otro.
+    assert (
+        profiles.loc["LEIOA SBT", "% con robo rival"] == profiles.loc["EASO BASKET", "% con robo"]
+    )
 
 
 def test_profile_average(tables):
-    average = league.profile_average(tables["teams"], tables["origins"])
+    average = league.profile_average(
+        tables["teams"], tables["origins"], tables["baskets"], tables["turnovers"]
+    )
+    assert average["% con robo"] == average["% con robo rival"]
     assert average["PTS/PJ"] == average["Encajados/PJ"] == 73
     assert average["eFG% rival"] == average["eFG%"]
     assert average["Contraataque/PJ rival"] == average["Contraataque/PJ"]
