@@ -1,0 +1,30 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import how %}
+{% block title %}Liga{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Liga</h1>
+    <p class="hint">Los {{ league_rows | length }} equipos con {{ n_league_games }} partidos jugados. Toca un equipo para ver su informe de scouting.</p>
+  </div>
+</div>
+<section id="clasificacion">
+  <h2>Clasificación avanzada</h2>
+  {{ how('"NETO aj." corrige el neto por la calidad de los rivales y por haber jugado más en casa o fuera. "Forma": flecha si los 3 últimos partidos se alejan claramente de los anteriores (1,5 errores estándar); hacen falta 6 partidos.', "Qué es cada columna") }}
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Equipo</th>{% for c in league_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in league_rows %}
+        <tr class="{{ 'own' if row.own }}{{ ' next' if row.next }}">
+          <th><a href="equipos/{{ row.slug }}.html">{{ row.name }}</a>{% if row.next %} <span class="tag">próximo rival</span>{% endif %}</th>
+          {% for v in row['values'] %}<td>{{ v }}</td>{% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="back"><a href="comparativa.html{% if next_rival_slug %}#{{ next_rival_slug }}{% endif %}">Comparar {{ team_name }} con cualquier equipo, cifra a cifra →</a></p>
+</section>
+{% include "glossary.html.j2" %}
+{% endblock %}

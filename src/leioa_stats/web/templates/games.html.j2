@@ -1,0 +1,16 @@
+{% extends "base.html.j2" %}
+{% block title %}Partidos{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Partidos</h1>
+    <p class="hint">{{ wins }} victorias y {{ losses }} derrotas. Toca un partido para ver su página: claves, marcador, la previa frente a lo que pasó y los box score.</p>
+  </div>
+</div>
+<section class="plain" id="lista">
+  <div class="game-grid">
+  {% for g in games | reverse %}{% include "game_card.html.j2" %}{% endfor %}
+  </div>
+</section>
+{% include "glossary.html.j2" %}
+{% endblock %}

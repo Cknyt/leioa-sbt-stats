@@ -1,4 +1,5 @@
 {% extends "base.html.j2" %}
+{% from "macros.html.j2" import how %}
 {% block title %}Comparativa{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -16,15 +17,11 @@
     </select>
   </label>
 </div>
-{% if n_games < 8 %}
-<p class="note">Solo hay {{ n_games }} partidos: con tan pocos, un buen o mal día cambia mucho las cifras. Sirve para orientarse, no para sacar conclusiones firmes.</p>
-{% endif %}
 
 <section>
   {# Casilla sin JavaScript: al marcarla, el CSS muestra las filas por partido. #}
   <input type="checkbox" id="show-extra" class="show-extra">
   <label for="show-extra" class="toggle-extra">Ver también las cifras por partido</label>
-  <p class="hint">Por defecto, solo cifras por posesión o en porcentaje: no dependen del ritmo. Las cifras por partido favorecen a los equipos que juegan más rápido.</p>
   <div class="table-wrap">
     <table class="data compare">
       <thead>
@@ -50,8 +47,8 @@
       {% endfor %}
     </table>
   </div>
-  <p class="hint">En verde, el equipo que sale mejor en cada cifra. El número pequeño es su puesto entre los {{ n_teams }} equipos de la liga (1º = el mejor). El ritmo y los triples intentados no son ni mejores ni peores, sino estilo de juego: ahí el 1º es el más alto.</p>
-  <p class="hint">Los rebotes, pérdidas y recuperaciones incluyen los "de equipo" (sin jugador). Los tapones se anotan de forma irregular en la mesa: tómalos con cautela.</p>
+  <p class="hint">En verde, el equipo que sale mejor en cada cifra. El número pequeño es su puesto entre los {{ n_teams }} equipos (1º = el mejor).</p>
+  {{ how("Por defecto solo se ven cifras por posesión o en porcentaje, que no dependen del ritmo: las cifras por partido favorecen a los equipos que juegan más rápido. El ritmo, los triples intentados y el % de asistidas no son mejores ni peores, sino estilo de juego: ahí el 1º es el más alto. Los rebotes, pérdidas y recuperaciones incluyen los \"de equipo\" (sin jugador). Los tapones se anotan de forma irregular en la mesa: tómalos con cautela.", "Cómo leer la tabla") }}
   <p class="back"><a id="rival-link" href="equipos/{{ rival_slug }}.html">Ver el informe de scouting de <span id="rival-link-name">{{ rival.name }}</span> →</a></p>
 </section>
 

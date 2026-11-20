@@ -14,6 +14,14 @@
   --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
 }
 
+/* Fuentes servidas desde el propio hosting (static/fonts, licencia SIL OFL). */
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(fonts/barlow-400.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url(fonts/barlow-500.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(fonts/barlow-600.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 700; font-display: swap; src: url(fonts/barlow-700.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url(fonts/barlow-condensed-600.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url(fonts/barlow-condensed-700.woff2) format("woff2"); }
+
 * { box-sizing: border-box; }
 
 body {
@@ -93,7 +101,7 @@ h3 { font-size: 1rem; margin: 18px 0 8px; }
   text-align: center;
   border-radius: 4px;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 .badge.big { width: 40px; height: 40px; flex: 0 0 40px; line-height: 40px; border-radius: 8px; font-size: 1rem; }
@@ -236,7 +244,7 @@ section.plain { background: none; border: 0; padding: 0; margin: 20px 0; }
 table.data tr.own th, table.data tr.own td { background: #eaf5dc; }
 table.data tr.next th, table.data tr.next td { background: #f9eeda; }
 .tag {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   background: var(--warn);
   color: #fff;
   border-radius: 4px;
@@ -293,7 +301,7 @@ table.compare thead th { vertical-align: bottom; white-space: normal; min-width:
 table.compare th, table.compare td { padding: 5px 6px; }
 /* Las etiquetas largas ("Contraataque/PJ rival") también se parten. */
 table.compare tbody th { white-space: normal; }
-table.compare .team-meta { display: block; color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+table.compare .team-meta { display: block; color: var(--muted); font-weight: 400; font-size: 0.8rem; }
 table.compare tr.group td {
   text-align: left;
   background: none;
@@ -301,7 +309,7 @@ table.compare tr.group td {
   color: var(--primary);
   font: 700 1.05rem/1.2 var(--display);
 }
-table.compare td small { color: var(--muted); font-size: 0.7rem; }
+table.compare td small { color: var(--muted); font-size: 0.75rem; }
 table.compare td.better { background: #eaf5dc; color: var(--primary); font-weight: 700; }
 .player-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; margin: 12px 0; }
 .player {
@@ -320,7 +328,7 @@ table.compare td.better { background: #eaf5dc; color: var(--primary); font-weigh
 .player-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .player-stats div { display: flex; flex-direction: column; }
 .player-stats strong { font: 700 1.8rem/1 var(--display); }
-.player-stats span { color: var(--muted); font-size: 0.75rem; }
+.player-stats span { color: var(--muted); font-size: 0.8rem; }
 .player-bars { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; gap: 10px; align-items: center; font-size: 0.85rem; }
 .player-bars b { text-align: right; }
 .bar-label { color: var(--muted); font-size: 0.8rem; }
@@ -382,22 +390,22 @@ button.info, .info-sample {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-left: 3px;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: #cfe3d6;
   color: var(--primary);
-  font: 700 11px/1 system-ui, sans-serif;
+  font: 700 13px/1 system-ui, sans-serif;
   vertical-align: 1px;
   cursor: pointer;
 }
 button.info:hover, button.info:focus-visible { background: var(--primary); color: #fff; outline: none; }
 /* Área táctil mayor que el botón dibujado, para el dedo. */
 button.info { position: relative; }
-button.info::after { content: ""; position: absolute; inset: -8px; }
+button.info::after { content: ""; position: absolute; inset: -12px; }
 .tip {
   position: fixed;
   z-index: 10;
@@ -426,12 +434,12 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 
 /* Confianza de cada conclusión (metrics/confidence.py). */
 .conf {
   display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
-  font-size: 0.7rem; font-weight: 600; line-height: 1.5; vertical-align: middle;
+  font-size: 0.75rem; font-weight: 600; line-height: 1.5; vertical-align: middle;
   text-transform: uppercase; letter-spacing: 0.03em;
 }
 .conf.alta { background: #0c653a; color: #fff; }
 .conf.media { background: #e9dfc8; color: #4a3f28; }
-.insight-card li span.conf { font-size: 0.7rem; }
+.insight-card li span.conf { font-size: 0.75rem; }
 .insight-card li span.conf.alta { color: #fff; }
 .insight-card li span.conf.media { color: #4a3f28; }
 
@@ -453,3 +461,67 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 0 
 .two-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .two-columns > section { min-width: 0; }
 .big-number { font-family: "Barlow Condensed", sans-serif; font-size: 2.4rem; font-weight: 700; margin: 4px 0; }
+
+/* Secciones plegables (macros.html.j2): el título es el botón para abrir y cerrar. */
+section.fold { padding: 0; }
+section.fold > details > summary {
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer;
+  list-style: none; min-height: 48px;
+}
+section.fold > details > summary::-webkit-details-marker { display: none; }
+section.fold > details > summary h2 { margin: 0; flex: 1 1 auto; }
+section.fold > details > summary::after {
+  content: "▾"; display: inline-block; color: var(--muted); font-size: 1.1rem; transition: transform 0.15s;
+}
+section.fold > details[open] > summary::after { transform: rotate(180deg); }
+section.fold > details > summary:hover h2 { text-decoration: underline; }
+.fold-body { padding: 0 16px 14px; }
+section.fold.issues > details > summary h2 { color: var(--warn); }
+
+/* "Cómo se calcula": explicación plegada. */
+details.how { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
+details.how > summary { cursor: pointer; display: inline-block; padding: 4px 0; font-weight: 600; color: var(--primary); }
+details.how > p { margin: 4px 0 0; }
+
+/* Índice de cada página (page.js). */
+.toc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+.toc span { color: var(--muted); font-size: 0.85rem; margin-right: 2px; }
+.toc a {
+  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 12px; font-size: 0.85rem; text-decoration: none; font-weight: 600;
+}
+.toc a:hover, .toc a:focus-visible { border-color: var(--primary); }
+
+/* Tablas anchas en el móvil (page.js): primeras columnas y botón para ver todas. */
+table.compact th:nth-child(n+6), table.compact td:nth-child(n+6) { display: none; }
+table.compact th, table.compact td { padding-left: 6px; padding-right: 6px; }
+.more-columns {
+  margin: 6px 0 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); color: var(--primary); font: 600 0.85rem/1 inherit; cursor: pointer;
+  min-height: 36px;
+}
+
+/* El menú se desliza en el móvil: sombra en el borde derecho para que se note. */
+@media (max-width: 699px) {
+  .tabs { mask-image: linear-gradient(to right, #000 85%, transparent); }
+}
+
+.print-button {
+  margin-top: 10px; padding: 9px 14px; border: 2px solid var(--primary); border-radius: 8px;
+  background: var(--card); color: var(--primary); font-weight: 700; cursor: pointer;
+}
+
+/* Impresión: la previa en papel, sin menú, glosario ni enlaces. */
+@media print {
+  body { background: #fff; font-size: 11pt; }
+  .top, footer, .toc, .glossary, .no-print, .how, .more-columns, button.info { display: none !important; }
+  main { max-width: none; padding: 0; }
+  section { border: 0; padding: 0; margin: 0 0 10pt; break-inside: avoid; }
+  section.fold > details > summary { padding: 0; min-height: 0; }
+  section.fold > details > summary::after { content: none; }
+  .fold-body { padding: 0; }
+  a { color: inherit; text-decoration: none; }
+  .two-columns { grid-template-columns: 1fr 1fr; }
+  table.compact th, table.compact td { display: table-cell !important; }
+  .conf { border: 1px solid #999; }
+}

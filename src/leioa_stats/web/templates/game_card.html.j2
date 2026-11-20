@@ -1,0 +1,17 @@
+{# Tarjeta de un partido del equipo (portada y página de partidos). Variable: g. #}
+<a class="game" href="{{ root }}partidos/{{ g.match.id }}.html" aria-label="Jornada {{ g.match.round }}: {{ g.title }}">
+  <span class="game-meta"><span>Jornada {{ g.match.round }} · {{ g.date }}</span>{% if g.issues %}<span class="warn">{{ g.issues }} aviso{{ 's' if g.issues > 1 }} en los datos</span>{% endif %}</span>
+  <span class="game-score">
+    <span class="badge big {{ 'win' if g.won else 'loss' }}">{{ 'V' if g.won else 'D' }}</span>
+    <span class="game-teams">
+      <span class="{{ 'own' if g.own_home }}"><span>{{ g.home }}</span><b>{{ g.match.local_score }}</b></span>
+      <span class="{{ 'own' if not g.own_home }}"><span>{{ g.away }}</span><b>{{ g.match.visitor_score }}</b></span>
+    </span>
+  </span>
+  <span class="game-stats">
+    <span data-term="Ritmo">Ritmo <b>{{ g.pace }}</b></span>
+    <span data-term="ORtg">ORtg <b>{{ g.ortg }}</b></span>
+    <span data-term="DRtg">DRtg <b>{{ g.drtg }}</b></span>
+    <span data-term="Neto">Neto <b>{{ g.net }}</b></span>
+  </span>
+</a>

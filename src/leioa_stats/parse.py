@@ -127,11 +127,21 @@ def shot_rows(match: dict, stats: dict, moves: list[dict]) -> list[dict]:
     return rows
 
 
-def iter_matches(raw_dir: Path = RAW_DIR) -> Iterator[tuple[dict, dict, list[dict]]]:
-    """Recorre los partidos descargados: (datos del partido, estadísticas, jugada a jugada)."""
+def iter_matches(
+    raw_dir: Path = RAW_DIR, skip_missing: bool = False
+) -> Iterator[tuple[dict, dict, list[dict]]]:
+    """Recorre los partidos descargados: (datos del partido, estadísticas, jugada a jugada).
+
+    `skip_missing`: salta los partidos de la lista que aún no están descargados (por ejemplo,
+    una temporada pasada a medio descargar).
+    """
     matches = json.loads((raw_dir / "matches.json").read_text(encoding="utf-8"))
     for match in matches:
         match_dir = raw_dir / "matches" / match["id"]
+        if skip_missing and not (
+            (match_dir / "stats.json").exists() and (match_dir / "moves.json").exists()
+        ):
+            continue
         stats = json.loads((match_dir / "stats.json").read_text(encoding="utf-8"))
         moves = json.loads((match_dir / "moves.json").read_text(encoding="utf-8"))
         # La mesa a veces escribe distinto el nombre de un equipo según el partido
@@ -142,10 +152,10 @@ def iter_matches(raw_dir: Path = RAW_DIR) -> Iterator[tuple[dict, dict, list[dic
         yield match, stats, moves
 
 
-def build_tables(raw_dir: Path = RAW_DIR) -> dict[str, pd.DataFrame]:
+def build_tables(raw_dir: Path = RAW_DIR, skip_missing: bool = False) -> dict[str, pd.DataFrame]:
     """Lee todos los partidos descargados y devuelve las tablas players, teams, quarters y shots."""
     players, teams, quarters, shots = [], [], [], []
-    for match, stats, moves in iter_matches(raw_dir):
+    for match, stats, moves in iter_matches(raw_dir, skip_missing):
         players += player_rows(match, stats)
         teams += team_rows(match, stats)
         quarters += quarter_rows(match, stats)

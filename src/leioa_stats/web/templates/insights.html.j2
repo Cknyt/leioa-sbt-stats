@@ -1,7 +1,9 @@
 {# Conclusiones automáticas de un equipo, en tarjetas. Variables: insights, ideas_title. #}
-<section class="insights">
+{% from "macros.html.j2" import how %}
+<section class="insights" id="conclusiones">
   <h2>Conclusiones</h2>
-  <p class="hint">Generadas automáticamente con reglas fijas a partir de los números de esta web (cada frase indica de dónde sale). Solo salen las que se distinguen del azar: <span class="conf alta">alta</span> si la cifra se aleja de la media de la liga 2 errores estándar o más, <span class="conf media">media</span> si se aleja entre 1,5 y 2. Lo demás puede ser suerte y no se muestra.</p>
+  <p class="hint">Solo salen las que se distinguen del azar, con su confianza: <span class="conf alta">alta</span> o <span class="conf media">media</span>.</p>
+  {{ how("Reglas fijas a partir de los números de esta web; cada frase indica de dónde sale. Confianza alta: la cifra se aleja de la media de la liga 2 errores estándar o más (por azar pasa en 1 de cada 20 casos). Media: entre 1,5 y 2. Lo demás puede ser suerte y no se muestra.") }}
   <div class="insight-grid">
   {% for title, items, kind in [
       ("Estilo de juego", insights.style, "style"),

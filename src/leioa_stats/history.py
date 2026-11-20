@@ -37,18 +37,19 @@ def download_season(group_id: int, history_dir: Path = HISTORY_DIR) -> Path:
     # El nombre del equipo solo sirve para los próximos partidos, que aquí no hay.
     matches, _ = fetch_league(downloader, group_id, team_name="")
     raw_dir.mkdir(parents=True, exist_ok=True)
+    for match in matches:
+        download_match(downloader, match, raw_dir, current_season=False)
+    # La lista se escribe al final: así nunca apunta a partidos sin descargar.
     (raw_dir / "matches.json").write_text(
         json.dumps(matches, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    for match in matches:
-        download_match(downloader, match, raw_dir, current_season=False)
     return raw_dir
 
 
 def past_players(history_dir: Path = HISTORY_DIR) -> pd.DataFrame:
     """Box score de todos los jugadores de las temporadas descargadas (vacío si no hay)."""
     tables = [
-        build_tables(season)["players"]
+        build_tables(season, skip_missing=True)["players"]
         for season in sorted(history_dir.glob("*"))
         if (season / "matches.json").exists()
     ]
