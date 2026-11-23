@@ -92,6 +92,24 @@ def test_pairs_and_trios(match_99138):
     assert not stints["garbage"].any()  # el 99138 se decidió por 6
 
 
+def test_best_first_sorts_by_plus_minus_then_minutes():
+    summary = pd.DataFrame(
+        {
+            "NETO": [-12.7, float("nan"), float("nan"), 2.3],
+            "+/-": [-13, 14, 3, 3],
+            "seconds": [2800, 2600, 300, 3600],
+        },
+        index=["-13 con neto", "+14 sin neto", "+3 y pocos min", "+3 y más min"],
+    )
+    # Un solo criterio para todas las filas, tengan neto o no. A igualdad, más minutos.
+    assert list(lineups.best_first(summary).index) == [
+        "+14 sin neto",
+        "+3 y más min",
+        "+3 y pocos min",
+        "-13 con neto",
+    ]
+
+
 def test_garbage_time_is_left_out():
     stints = pd.DataFrame(
         [
