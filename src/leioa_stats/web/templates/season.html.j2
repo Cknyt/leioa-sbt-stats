@@ -86,7 +86,7 @@
 {% endcall %}
 
 {% call fold("quintetos", "Quintetos, parejas y tríos") %}
-  <p class="hint">Los 10 quintetos con más minutos, por dorsales.</p>
+  <p class="hint">Los 10 quintetos con más minutos, por dorsales, ordenados de mejor a peor por +/-. Las parejas y los tríos, igual.</p>
   <div class="table-wrap">{{ lineups | safe }}</div>
   {% if lineups_incomplete %}<p class="note">{{ lineups_incomplete }} minutos sin 5 jugadores en pista (cambio mal anotado) no cuentan.</p>{% endif %}
   <p class="legend">{% for n, p in legend %}<span><b>{{ n }}</b> {{ p }}</span>{% endfor %}</p>

@@ -28,6 +28,12 @@ cuenta para el +/-, que debe coincidir con el de la federación.
 Parejas y tríos: con tantos quintetos distintos, cada uno junta pocos minutos. Una pareja o
 un trío suma todos los tramos en los que coinciden en pista, con cualquier compañero, así que
 llega antes al mínimo de posesiones.
+
+Orden de mejor a peor (best_first): por +/-, que es el único dato que tienen todas las
+filas. El neto solo existe a partir del mínimo de posesiones, así que ordenar por él dejaría
+una tabla con dos criterios mezclados (un +14 sin neto por debajo de un neto de -13). A
+igualdad de +/-, primero el de más minutos, que tiene más muestra. Como el +/- crece con los
+minutos, solo se comparan grupos de uso parecido: las tablas eligen antes los más usados.
 """
 
 from collections import Counter
@@ -209,6 +215,11 @@ def combination_summary(stints: pd.DataFrame, size: int = 2) -> pd.DataFrame:
     summary = pd.DataFrame(totals).T.fillna(0)
     summary["PJ"] = pd.Series({k: len(v) for k, v in games.items()})
     return hide_small_samples(add_ratings(summary)).sort_values("seconds", ascending=False)
+
+
+def best_first(summary: pd.DataFrame) -> pd.DataFrame:
+    """Ordena quintetos, parejas o tríos de mejor a peor: por +/- y, a igualdad, por minutos."""
+    return summary.sort_values(["+/-", "seconds"], ascending=False)
 
 
 def garbage_minutes(stints: pd.DataFrame) -> float:

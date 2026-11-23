@@ -57,6 +57,7 @@ from leioa_stats.metrics.league import (
     team_profiles,
 )
 from leioa_stats.metrics.lineups import (
+    best_first,
     combination_summary,
     garbage_minutes,
     lineup_summary,
@@ -160,7 +161,8 @@ def table(df: pd.DataFrame, index_name: str = "") -> str:
 
 
 def lineup_table(lineups: pd.DataFrame, numbers: dict[str, str]) -> str:
-    lineups = lineups.head(TOP_LINEUPS).copy()
+    # Se eligen los más usados (más muestra) y esos se ordenan de mejor a peor.
+    lineups = best_first(lineups.head(TOP_LINEUPS))
     lineups.index = [
         "-".join(sorted((numbers.get(p, "?") for p in lineup.split(" | ")), key=_dorsal_key))
         for lineup in lineups.index
@@ -348,7 +350,7 @@ def match_page(match, stats, moves, tables, stints, team_name) -> dict:
 
 
 def combo_table(stints, size: int) -> str:
-    combos = combination_summary(stints, size).head(TOP_COMBOS)
+    combos = best_first(combination_summary(stints, size).head(TOP_COMBOS))
     combos.index = [" · ".join(short_name(p) for p in combo.split(" | ")) for combo in combos.index]
     title = "Pareja" if size == 2 else "Trío"
     return table(combos[COMBO_COLUMNS], title)
