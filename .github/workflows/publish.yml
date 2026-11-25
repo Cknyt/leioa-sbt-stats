@@ -1,7 +1,7 @@
 # Descarga los partidos, genera la web y la sube al hosting por FTP.
-# Solo se ejecuta a mano (pestaña Actions > Publicar web > Run workflow): el usuario decide
-# cuándo publicar. Las ejecuciones automáticas (cada lunes y al llegar código a main) están
-# quitadas; para recuperarlas, vuelve a añadir los bloques schedule y push en "on".
+# Se lanza a mano (pestaña Actions > Publicar web > Run workflow) y, de forma temporal, cada
+# lunes a las 10:00 de Madrid hasta la fecha de PUBLISH_UNTIL (ver el trabajo "check"). Pasada
+# esa fecha, la ejecución programada termina sin publicar; lanzarlo a mano sigue funcionando.
 #
 # Configuración (Settings > Secrets and variables > Actions):
 # - Secretos: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
@@ -12,6 +12,10 @@ name: Publicar web
 
 on:
   workflow_dispatch:
+  # Cron en hora UTC: 09:00 UTC son las 10:00 en Madrid en invierno (CET, UTC+1). En horario de
+  # verano (CEST, UTC+2) serían las 11:00.
+  schedule:
+    - cron: "0 9 * * 1"
 
 # Nunca dos publicaciones a la vez.
 concurrency:
@@ -25,7 +29,28 @@ permissions:
   models: read
 
 jobs:
+  # Las ejecuciones programadas solo publican hasta PUBLISH_UNTIL (incluida). Así la
+  # automatización temporal se apaga sola. Las ejecuciones a mano no tienen límite.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.date.outputs.run }}
+    env:
+      PUBLISH_UNTIL: "2026-12-14"
+    steps:
+      - id: date
+        run: |
+          today=$(TZ=Europe/Madrid date +%F)
+          if [ "${{ github.event_name }}" != "schedule" ] || [[ ! "$today" > "$PUBLISH_UNTIL" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Publicación programada desactivada: hoy ($today) es posterior a $PUBLISH_UNTIL."
+          fi
+
   publish:
+    needs: check
+    if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       HAS_FTP: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' && vars.FTP_SERVER_DIR != '' }}

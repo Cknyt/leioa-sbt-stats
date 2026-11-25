@@ -146,7 +146,7 @@ Las de confianza alta aguantan casi siempre; las de confianza media de la jornad
 
 ## Publicación
 
-GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon**. La carpeta `web` es la raíz pública del dominio, así que la web queda en <https://ownbasketball.com/leioa/>. Se ejecuta **solo a mano**, cuando el usuario decide publicar: pestaña *Actions* > *Publicar web* > *Run workflow* (rama `main`), o con `gh workflow run publish.yml`. Las ejecuciones automáticas (cada lunes y al llegar código a `main`) se quitaron para controlar cuándo cambia la web.
+GitHub Actions (`.github/workflows/publish.yml`) descarga los partidos nuevos, genera la web y la sube por FTP a la carpeta `web/leioa` del hosting en **cdmon**. La carpeta `web` es la raíz pública del dominio, así que la web queda en <https://ownbasketball.com/leioa/>. Se ejecuta a mano, cuando el usuario decide publicar: pestaña *Actions* > *Publicar web* > *Run workflow* (rama `main`), o con `gh workflow run publish.yml`. Además, de forma temporal, se lanza solo **cada lunes a las 10:00** (hora de Madrid) hasta la fecha de `PUBLISH_UNTIL` en el workflow (ahora el 14 de diciembre de 2026); después, la ejecución programada termina sin publicar. Para alargarla, cambia esa fecha; para quitarla del todo, borra el bloque `schedule` y el trabajo `check`.
 
 La web no se indexa en buscadores (`noindex`): se ve con el enlace, pero no aparece en Google.
 
