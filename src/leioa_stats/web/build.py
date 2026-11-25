@@ -1,7 +1,8 @@
 """Genera la web estática en site/.
 
-Páginas: la temporada del equipo, sus jugadores, la comparativa con cualquier equipo de la
-liga, una por cada partido suyo y una por cada equipo de la liga (scouting de rivales).
+Páginas: la temporada del equipo, sus jugadores, sus temporadas pasadas, la comparativa con
+cualquier equipo de la liga, una por cada partido suyo y una por cada equipo de la liga
+(scouting de rivales).
 """
 
 import hashlib
@@ -18,7 +19,7 @@ from plotly.offline import get_plotlyjs
 from leioa_stats import ai_report
 from leioa_stats.download import TEAM_NAME, involves
 from leioa_stats.format import display_name, number, short_labels, short_name
-from leioa_stats.history import past_players, shooting_history
+from leioa_stats.history import CURRENT_SEASON, past_players, past_seasons, shooting_history
 from leioa_stats.metrics.adjusted import adjusted_ratings, forecast, recent_form
 from leioa_stats.metrics.advanced import (
     four_factors,
@@ -80,6 +81,7 @@ from leioa_stats.metrics.rotation import (
     missed_last_game,
     starters,
 )
+from leioa_stats.metrics.seasons import TEAM_METRICS, returning_players, team_seasons
 from leioa_stats.metrics.shots import add_zones, zone_summary
 from leioa_stats.metrics.similarity import most_similar, player_features
 from leioa_stats.metrics.turnovers import live_share, turnover_profiles, turnover_rows
@@ -889,6 +891,35 @@ def team_page(team_name, all_matches, tables, stints, league, average, own_team)
     }
 
 
+# Columnas de la tabla del equipo en la página de temporadas.
+SEASON_COLUMNS = ["PJ", "V", "D", "Puesto", *TEAM_METRICS]
+
+
+def seasons_page(past: dict, tables: dict, team_name: str) -> dict:
+    """El equipo temporada a temporada y los jugadores que siguen (metrics/seasons.py)."""
+    seasons = {**past, CURRENT_SEASON: {"players": tables["players"], "teams": tables["teams"]}}
+    summary = team_seasons({s: t["teams"] for s, t in seasons.items()}, team_name)
+    rows = []
+    for season, row in summary.iterrows():
+        values = [str(int(row[c])) for c in ("PJ", "V", "D")]
+        values.append(f"{int(row['Puesto'])}.º de {int(row['equipos'])}")
+        values += [f"{number(row[c])} ({int(row[f'{c} puesto'])}.º)" for c in TEAM_METRICS]
+        rows.append({"season": season, "current": season == CURRENT_SEASON, "values": values})
+    players = []
+    for player in returning_players(seasons, CURRENT_SEASON, team_name):
+        shown = player["table"].copy()
+        shown[["PJ", "T3A"]] = shown[["PJ", "T3A"]].astype(int)
+        players.append({**player, "name": display_name(player["player"]), "table": table(shown)})
+    return {
+        "season_columns": SEASON_COLUMNS,
+        "season_rows": rows,
+        "has_past": len(summary) > 1,
+        "current_season": CURRENT_SEASON,
+        "season_chart": charts.to_html(charts.season_ratings(summary)),
+        "returning": players,
+    }
+
+
 def build_site(
     raw_dir: Path = RAW_DIR, out_dir: Path = SITE_DIR, team_name: str = TEAM_NAME
 ) -> list[Path]:
@@ -918,8 +949,9 @@ def build_site(
     )
     tables["features"] = player_features(tables["players"], tables["shots"], usage)
     tables["spread"] = league_spread(team_games(tables["teams"]))
+    past = past_seasons(raw_dir / "history")
     tables["shooting"] = shooting_baseline(
-        tables["players"], shooting_history(past_players(raw_dir / "history"))
+        tables["players"], shooting_history(past_players(seasons=past))
     )
     league = league_table(tables["teams"])
     average = league_average(tables["teams"])
@@ -990,6 +1022,14 @@ def build_site(
         "",
         active="players",
         **players_page(tables, stints[team_name], team_name),
+    )
+    render(
+        out_dir / "temporadas.html",
+        "seasons.html.j2",
+        "",
+        active="seasons",
+        charts=True,
+        **seasons_page(past, tables, team_name),
     )
     render(
         out_dir / "comparativa.html",

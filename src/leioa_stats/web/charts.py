@@ -194,3 +194,37 @@ def minute_heatmap(shares: pd.DataFrame, names: list[str]) -> go.Figure:
 def to_html(fig: go.Figure) -> str:
     """HTML del gráfico sin la librería plotly.js, que la página carga una sola vez."""
     return fig.to_html(full_html=False, include_plotlyjs=False, config=CONFIG)
+
+
+def season_ratings(seasons: pd.DataFrame) -> go.Figure:
+    """Ataque y defensa del equipo en cada temporada frente a la media de la liga de ese año
+    (filas de metrics/seasons.team_seasons)."""
+    names = list(seasons.index)
+    lines = [
+        ("Ataque (ORtg)", "ORtg", TEAM_COLOR, "solid"),
+        ("Defensa (DRtg, encajados)", "DRtg", RIVAL_COLOR, "solid"),
+        ("Media de la liga", "ORtg liga", LINE_COLOR, "dot"),
+    ]
+    fig = go.Figure(
+        [
+            go.Scatter(
+                x=names,
+                y=seasons[column].astype(float),
+                name=name,
+                mode="lines+markers",
+                line={"color": color, "dash": dash, "width": 2},
+                hovertemplate="%{x}: %{y:.1f} puntos por 100 posesiones<extra>" + name + "</extra>",
+            )
+            for name, column, color, dash in lines
+        ]
+    )
+    fig.update_layout(
+        xaxis={"fixedrange": True, "type": "category"},
+        yaxis={"title": "Puntos por 100 posesiones", "fixedrange": True},
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 50, "r": 10, "t": 10, "b": 40},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=320,
+    )
+    return fig

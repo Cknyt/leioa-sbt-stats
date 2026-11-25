@@ -256,6 +256,9 @@ table.data tr.next th, table.data tr.next td { background: #f9eeda; }
 .player-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .player-card { border-top: 1px solid var(--border); padding-top: 10px; min-width: 0; }
 .player-card h3 { margin: 0; }
+.change { font-size: 0.9rem; margin: 6px 0 0; }
+.change .up { color: var(--win); font-weight: 600; }
+.change .down { color: var(--warn); font-weight: 600; }
 @media (min-width: 900px) {
   .player-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

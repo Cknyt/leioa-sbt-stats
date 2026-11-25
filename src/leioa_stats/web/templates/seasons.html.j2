@@ -1,0 +1,60 @@
+{% extends "base.html.j2" %}
+{% from "macros.html.j2" import how %}
+{% block title %}Temporadas{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Temporadas</h1>
+    <p class="hint">{{ team_name }} en la 1ª División, temporada a temporada, y los jugadores que siguen.</p>
+  </div>
+</div>
+<p class="note">Los datos de años pasados se anotaron a mano en la mesa, igual que los de ahora. La temporada {{ current_season }} va por la jornada {{ last_round }}: sus cifras pueden cambiar mucho todavía, así que compárala con cuidado.</p>
+{% if not has_past %}
+<p class="note">No hay temporadas pasadas descargadas (<code>uv run python -m leioa_stats.history</code>).</p>
+{% endif %}
+
+<section id="equipo">
+  <h2>El equipo, año a año</h2>
+  {{ how("Las mismas fórmulas que el resto de la web. Entre paréntesis, el puesto en la liga de ese año (1.º = el mejor; en ritmo, el más rápido): si toda la liga tira mejor un año, el puesto dice más que el porcentaje. El puesto en la clasificación ordena por victorias y, si empatan, por neto, sin los desempates oficiales.", "Cómo se lee") }}
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Temporada</th>{% for c in season_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in season_rows %}
+        <tr class="{{ 'own' if row.current }}">
+          <th>{{ row.season }}</th>
+          {% for v in row['values'] %}<td>{{ v }}</td>{% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="evolucion">
+  <h2>Ataque y defensa</h2>
+  <p class="hint">Puntos anotados y encajados por 100 posesiones frente a la media de la liga de cada año. En ataque, mejor por encima de la media; en defensa, por debajo.</p>
+  {{ season_chart | safe }}
+</section>
+
+<section id="jugadores">
+  <h2>Jugadores que siguen</h2>
+  {{ how("Se reconoce a cada jugador por el código de su ficha en el acta, que no cambia de un año a otro. La flecha compara su acierto de esta temporada con el de su última temporada pasada en el equipo. Solo aparece si la diferencia es mayor que la que daría el azar con esos intentos: confianza alta si se aleja 2 errores estándar o más, media si se aleja entre 1,5 y 2. Sin flecha, no hay un cambio claro.", "Cómo se calcula") }}
+  {% if returning %}
+  <div class="player-grid">
+  {% for p in returning %}
+    <div class="player-card">
+      <h3>{{ p.name }}</h3>
+      <div class="table-wrap">{{ p.table | safe }}</div>
+      {% for metric, change in p.changes.items() %}{% if change %}
+      <p class="change"><span class="{{ 'up' if change.up else 'down' }}">{{ '↑' if change.up else '↓' }} {{ metric }}</span> {{ 'mejor' if change.up else 'peor' }} que en {{ p.compared_with }} (confianza {{ change.confidence }}).</p>
+      {% endif %}{% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+  {% else %}
+  <p class="hint">Ningún jugador de esta temporada jugó en el equipo en las temporadas descargadas.</p>
+  {% endif %}
+</section>
+{% include "glossary.html.j2" %}
+{% endblock %}

@@ -53,6 +53,7 @@ def test_build_site_creates_pages(site):
         out / "partidos.html",
         out / "liga.html",
         out / "jugadores.html",
+        out / "temporadas.html",
         out / "comparativa.html",
         out / "partidos" / "99138.html",
         out / "previas" / "easo-basket.html",
@@ -299,9 +300,9 @@ def test_preview_page(site):
 def test_menu_and_new_pages(site):
     out, pages = site
     index = (out / "index.html").read_text(encoding="utf-8")
-    # Cinco entradas: Resumen, Previa, Jugadores, Partidos y Liga.
+    # Seis entradas: Resumen, Previa, Jugadores, Partidos, Temporadas y Liga.
     menu = index.split('<nav class="tabs"')[1].split("</nav>")[0]
-    assert menu.count("<a ") == 5
+    assert menu.count("<a ") == 6
     assert "Datos hasta la jornada 1" in index
     games = (out / "partidos.html").read_text(encoding="utf-8")
     assert 'aria-current="page">Partidos' in games
