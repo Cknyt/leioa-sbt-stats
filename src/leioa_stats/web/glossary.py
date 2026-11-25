@@ -163,6 +163,11 @@ ENTRIES: list[tuple[tuple[str, ...], str]] = [
     ),
     (("V", "D"), "Victorias y derrotas."),
     (
+        ("Puesto",),
+        "Puesto en la clasificación de esa temporada, ordenada por victorias y, si empatan, por "
+        "neto. No aplica los desempates oficiales (enfrentamiento directo).",
+    ),
+    (
         ("% asistidas",),
         "Parte de sus canastas de campo que llegan tras una asistencia (según la mesa).",
     ),

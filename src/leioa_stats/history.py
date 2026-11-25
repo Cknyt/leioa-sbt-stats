@@ -32,6 +32,9 @@ from leioa_stats.parse import build_tables
 HISTORY_DIR = Path("data/raw/history")
 # 1ª Mas-Liga Regular - Único: 2025-26 y 2024-25.
 HISTORY_GROUPS = [2511, 2138]
+# Nombre de cada temporada (la carpeta solo lleva el id del grupo).
+SEASON_NAMES = {2138: "2024-25", 2511: "2025-26"}
+CURRENT_SEASON = "2026-27"
 
 
 def download_season(group_id: int, history_dir: Path = HISTORY_DIR) -> Path:
@@ -52,13 +55,28 @@ def download_season(group_id: int, history_dir: Path = HISTORY_DIR) -> Path:
     return raw_dir
 
 
-def past_players(history_dir: Path = HISTORY_DIR) -> pd.DataFrame:
-    """Box score de todos los jugadores de las temporadas descargadas (vacío si no hay)."""
-    tables = [
-        build_tables(season, skip_missing=True)["players"]
-        for season in sorted(history_dir.glob("*"))
-        if (season / "matches.json").exists()
+def past_seasons(history_dir: Path = HISTORY_DIR) -> dict[str, dict[str, pd.DataFrame]]:
+    """Tablas de cada temporada descargada, por nombre ("2024-25"), de la más antigua a la
+    más reciente. Una carpeta sin nombre en SEASON_NAMES se llama como su id."""
+    folders = [
+        folder
+        for folder in history_dir.glob("*")
+        if folder.name.isdigit() and (folder / "matches.json").exists()
     ]
+    names = {folder: SEASON_NAMES.get(int(folder.name), folder.name) for folder in folders}
+    return {
+        names[folder]: build_tables(folder, skip_missing=True)
+        for folder in sorted(folders, key=lambda f: names[f])
+    }
+
+
+def past_players(history_dir: Path = HISTORY_DIR, seasons: dict | None = None) -> pd.DataFrame:
+    """Box score de todos los jugadores de las temporadas descargadas (vacío si no hay).
+
+    `seasons`: las de past_seasons, si ya están cargadas (así no se leen dos veces)."""
+    if seasons is None:
+        seasons = past_seasons(history_dir)
+    tables = [tables["players"] for tables in seasons.values()]
     return pd.concat(tables, ignore_index=True) if tables else pd.DataFrame()
 
 

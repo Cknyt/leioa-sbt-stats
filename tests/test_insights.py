@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from leioa_stats import parse, validate
-from leioa_stats.metrics import insights, league
+from leioa_stats.metrics import insights, league, seasons
 from leioa_stats.metrics.advanced import player_usage, team_games
 from leioa_stats.metrics.basic import player_season
 from leioa_stats.metrics.quarters import QUARTER_COLUMNS
@@ -206,7 +206,7 @@ def test_every_column_has_a_definition(tables):
     columns = (
         build.TEAM_COLUMNS + build.PLAYER_COLUMNS + build.BOX_COLUMNS + build.SCOUTING_COLUMNS
         + build.LEAGUE_COLUMNS + build.FACTOR_ROWS + zone_columns + league.COMPARISON_COLUMNS
-        + QUARTER_COLUMNS
+        + QUARTER_COLUMNS + build.SEASON_COLUMNS + seasons.PLAYER_COLUMNS
         + ["MIN", "PTS", "PTS rival", "+/-", "POSS", "ORtg", "DRtg", "NETO",
            "NETO en pista", "NETO en banquillo", "DIFERENCIA", "POSS en pista",
            "POSS en banquillo"]
